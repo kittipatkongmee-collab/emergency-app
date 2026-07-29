@@ -1,0 +1,22 @@
+{
+  "name": "police-incident-system",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev:api": "pnpm --filter @police/api start:dev",
+    "dev:web": "pnpm --filter @police/admin-web start",
+    "dev": "pnpm --parallel --filter @police/api --filter @police/admin-web run start:dev",
+    "build": "pnpm -r --if-present run build",
+    "lint": "pnpm -r --if-present run lint",
+    "test": "pnpm -r --if-present run test",
+    "format": "pnpm -r --if-present run format",
+    "db:migrate": "pnpm --filter @police/api prisma:migrate",
+    "db:seed": "pnpm --filter @police/api prisma:seed",
+    "db:studio": "pnpm --filter @police/api prisma:studio",
+    "mobile:get": "cd apps/mobile && flutter pub get",
+    "mobile:run": "cd apps/mobile && flutter run --dart-define=APP_ENV=development",
+    "mobile:analyze": "cd apps/mobile && flutter analyze",
+    "mobile:test": "cd apps/mobile && flutter test"
+  }
+}

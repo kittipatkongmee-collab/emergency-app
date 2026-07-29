@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum IncidentType {
+  ACCIDENT
+  FIRE
+  MISSING_PERSON
+  OBSTRUCTION
+  SUSPICIOUS
+  OTHER
+}
+enum IncidentStatus {
+  RECEIVED
+  FORWARDED
+  INSPECTING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+enum IncidentPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+enum AdminRole {
+  SUPER_ADMIN
+  SUPERVISOR
+  OFFICER
+  VIEWER
+}
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+enum NotificationType {
+  INCIDENT_CREATED
+  STATUS_CHANGED
+  ASSIGNMENT
+  SYSTEM
+}
+enum PlatformType {
+  IOS
+  ANDROID
+  WEB
+}
+enum OwnerType {
+  CITIZEN
+  ADMIN
+}
+
+model CitizenUser {
+  id              String       @id @default(uuid()) @db.Uuid
+  facebookId      String       @unique
+  fullName        String
+  email           String?
+  profileImageUrl String?
+  phone           String?
+  status          UserStatus   @default(ACTIVE)
+  lastLoginAt     DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  incidents       Incident[]
+  notifications   Notification[]
+  deviceTokens    DeviceToken[]
+}
+
+model AdminUser {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  username              String                  @unique
+  email                 String?                 @unique
+  passwordHash          String
+  fullName              String
+  phone                 String?
+  role                  AdminRole
+  status                UserStatus              @default(ACTIVE)
+  lastLoginAt           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  assignedIncidents     Incident[]              @relation("CurrentAssignee")
+  statusChanges         IncidentStatusHistory[]
+  notes                 IncidentNote[]
+  assignmentsReceived   IncidentAssignment[]    @relation("AssignedTo")
+  assignmentsCreated    IncidentAssignment[]    @relation("AssignedBy")
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  updatedSettings       SystemSetting[]
+}
+
+model Incident {
+  id                  String              @id @default(uuid()) @db.Uuid
+  caseCode            String              @unique
+  citizenUserId       String              @db.Uuid
+  reporterName        String
+  reporterPhone       String
+  type                IncidentType
+  description         String
+  latitude            Decimal             @db.Decimal(10, 7)
+  longitude           Decimal             @db.Decimal(10, 7)
+  address             String
+  subdistrict         String?
+  district            String?
+  province            String?
+  postalCode          String?
+  status              IncidentStatus      @default(RECEIVED)
+  priority            IncidentPriority    @default(NORMAL)
+  assignedAdminUserId String?              @db.Uuid
+  reportedAt          DateTime            @default(now())
+  completedAt         DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  citizenUser         CitizenUser         @relation(fields: [citizenUserId], references: [id])
+  assignedAdminUser   AdminUser?          @relation("CurrentAssignee", fields: [assignedAdminUserId], references: [id])
+  images              IncidentImage[]
+  statusHistory       IncidentStatusHistory[]
+  notes               IncidentNote[]
+  assignments         IncidentAssignment[]
+  notifications       Notification[]
+  @@index([status])
+  @@index([type])
+  @@index([reportedAt])
+  @@index([citizenUserId])
+  @@index([assignedAdminUserId])
+  @@index([province])
+  @@index([createdAt])
+}
+
+model IncidentImage {
+  id              String   @id @default(uuid()) @db.Uuid
+  incidentId      String   @db.Uuid
+  fileName        String
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  storageProvider String
+  storageKey      String
+  imageUrl        String
+  createdAt       DateTime @default(now())
+  incident        Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  @@index([incidentId])
+}
+
+model IncidentStatusHistory {
+  id                   String          @id @default(uuid()) @db.Uuid
+  incidentId           String          @db.Uuid
+  fromStatus           IncidentStatus?
+  toStatus             IncidentStatus
+  note                 String?
+  changedByAdminUserId String?         @db.Uuid
+  changedAt            DateTime        @default(now())
+  incident             Incident        @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  changedByAdminUser   AdminUser?      @relation(fields: [changedByAdminUserId], references: [id])
+  @@index([incidentId, changedAt])
+}
+
+model IncidentNote {
+  id                 String    @id @default(uuid()) @db.Uuid
+  incidentId         String    @db.Uuid
+  adminUserId        String    @db.Uuid
+  note               String
+  isVisibleToCitizen Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  incident           Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  adminUser          AdminUser @relation(fields: [adminUserId], references: [id])
+}
+
+model IncidentAssignment {
+  id                    String    @id @default(uuid()) @db.Uuid
+  incidentId            String    @db.Uuid
+  assignedToAdminUserId String    @db.Uuid
+  assignedByAdminUserId String    @db.Uuid
+  assignedAt            DateTime  @default(now())
+  unassignedAt          DateTime?
+  incident              Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  assignedToAdminUser   AdminUser @relation("AssignedTo", fields: [assignedToAdminUserId], references: [id])
+  assignedByAdminUser   AdminUser @relation("AssignedBy", fields: [assignedByAdminUserId], references: [id])
+}
+
+model Notification {
+  id            String           @id @default(uuid()) @db.Uuid
+  citizenUserId String?          @db.Uuid
+  adminUserId   String?          @db.Uuid
+  incidentId    String?          @db.Uuid
+  title         String
+  message       String
+  type          NotificationType
+  isRead        Boolean          @default(false)
+  readAt        DateTime?
+  createdAt     DateTime         @default(now())
+  citizenUser   CitizenUser?     @relation(fields: [citizenUserId], references: [id])
+  adminUser     AdminUser?       @relation(fields: [adminUserId], references: [id])
+  incident      Incident?        @relation(fields: [incidentId], references: [id])
+  @@index([citizenUserId, createdAt])
+  @@index([adminUserId, createdAt])
+}
+
+model DeviceToken {
+  id            String       @id @default(uuid()) @db.Uuid
+  citizenUserId String       @db.Uuid
+  token         String       @unique
+  platform      PlatformType
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  citizenUser   CitizenUser  @relation(fields: [citizenUserId], references: [id])
+}
+
+model RefreshToken {
+  id        String    @id @db.Uuid
+  ownerType OwnerType
+  ownerId   String    @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  @@index([ownerType, ownerId])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  adminUserId String?   @db.Uuid
+  action      String
+  entityType  String
+  entityId    String?
+  oldValue    Json?
+  newValue    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
+
+model SystemSetting {
+  id                   String    @id @default(uuid()) @db.Uuid
+  key                  String    @unique
+  value                Json
+  updatedByAdminUserId String?   @db.Uuid
+  updatedAt            DateTime  @updatedAt
+  updatedByAdminUser   AdminUser? @relation(fields: [updatedByAdminUserId], references: [id])
+}
