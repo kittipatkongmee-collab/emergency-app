@@ -17,6 +17,16 @@
 - Database: PascalCase Prisma models and camelCase fields; enums use uppercase values.
 - Files and routes: kebab-case.
 
+## Git workflow
+- Treat `develop` as the integration branch and `main` as the production branch.
+- Before modifying or adding project files while on `develop`, infer a concise English kebab-case branch name from the requested task and create the branch automatically before making changes.
+- Use `feature/` for new behavior, `fix/` for defects, `chore/` for configuration or maintenance, `docs/` for documentation-only work, `refactor/` for behavior-preserving restructuring, and `test/` for test-only work.
+- When `develop` is clean, update it with `git pull --ff-only origin develop` before creating the task branch. If `develop` already has uncommitted user changes, create the task branch without pulling, stashing, discarding or rewriting those changes.
+- Do not create a new branch for read-only inspection, explanations or status reports. If already on the appropriate task branch, continue using it.
+- Never commit or push automatically. Leave all changes uncommitted for the user unless the user explicitly requests a commit or push.
+- Never merge a task branch directly into `main`. Task branches must target `develop`; merge `develop` into `main` only when the user explicitly requests a production release.
+- Never merge, rebase, force-push, delete a branch or discard working-tree changes without the user's explicit request.
+
 ## Testing
 - Add unit tests for business rules and validation, integration tests for persistence/authorization, and at least one end-to-end happy path.
 - Run formatting, lint, tests and builds before completing a phase. Never disable a failing test to make CI pass.
