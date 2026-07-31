@@ -1,12 +1,12 @@
 # System architecture
 
 ## Context
-The platform has three clients in one repository: a Flutter citizen app, an Angular police back office and a NestJS API. PostgreSQL is the system of record. Socket.IO provides live foreground updates; FCM is the background notification adapter.
+The platform has three clients in one repository: a Flutter citizen app, an Angular police back office and a NestJS API. MySQL 8 is the system of record. Socket.IO provides live foreground updates; FCM is the background notification adapter.
 
 ## Runtime flow
 1. Flutter exchanges a Facebook token for short-lived system JWTs.
 2. The citizen submits incident metadata and 1–5 validated images.
-3. NestJS stores metadata transactionally in PostgreSQL and binary files through `StorageAdapter`.
+3. NestJS stores metadata transactionally in MySQL through Prisma and binary files through `StorageAdapter`.
 4. Authorized admin users receive `incident.created`, assign work and update status.
 5. Each mutation writes status/assignment history and an audit log, creates a notification, then emits scoped realtime events.
 6. Flutter refreshes the timeline and receives FCM when not connected.
@@ -27,9 +27,9 @@ The platform has three clients in one repository: a Flutter citizen app, an Angu
 - Smart card and PDF export are extension interfaces only in the first release.
 
 ## Environments
-- Development: local PostgreSQL, local uploads, Swagger enabled, optional auth bypass.
+- Development: MySQL 8 in Docker Compose, local uploads, Swagger enabled, optional auth bypass.
 - Staging: isolated database/storage, real external test credentials, Swagger access-controlled.
-- Production: TLS proxy, managed PostgreSQL, S3-compatible storage, Swagger optional, no auth bypass.
+- Production: TLS proxy, managed MySQL 8, S3-compatible storage, Swagger optional, no auth bypass.
 
 ## Required owner inputs
 - Approved Police Aviation Division and Royal Thai Police logo assets.

@@ -1,7 +1,7 @@
 # Police Incident System – Engineering Rules
 
 ## Architecture
-- Keep the mandated stack: Flutter, Angular standalone components, NestJS, Prisma, PostgreSQL, Socket.IO and pnpm workspaces.
+- Keep the mandated stack: Flutter, Angular standalone components, NestJS, Prisma, MySQL 8, Socket.IO and pnpm workspaces.
 - Organize backend features as NestJS modules, Angular by feature, and Flutter by feature with presentation/data/domain boundaries only where useful.
 - API responses must use the shared success/error envelope. All user-facing copy is Thai; identifiers and database fields are English.
 - External services (Facebook, FCM, maps, storage, smart card and PDF export) must be behind interfaces. Development substitutes must fail closed in production.
@@ -35,6 +35,13 @@
 - Hash passwords and refresh tokens, rotate refresh tokens, enforce ownership/RBAC server-side, redact secrets and personal data from logs, and audit privileged changes.
 - Validate upload MIME, extension, count and size; generate storage keys server-side.
 - `DEV_AUTH_BYPASS` is allowed only when `NODE_ENV=development` and must abort startup otherwise.
+
+## Database
+- MySQL 8 is the only supported database and Prisma is the only application ORM/database client.
+- Never reintroduce PostgreSQL, PostgreSQL-specific SQL, native UUID columns, arrays, JSONB, sequences, casts or operators.
+- Store UUID values as `String @db.Char(36)`, use `utf8mb4`/`utf8mb4_unicode_ci`, and store timestamps in UTC.
+- Development and test databases must remain separate. Automated tests, cleanup and reset operations must verify that they target the dedicated `_test` database.
+- Never reset, truncate or otherwise destroy a production database.
 
 ## UI
 - Follow `docs/ui-reference`: formal maroon/white palette, generous spacing, rounded cards, subtle shadows and Sarabun/Noto Sans Thai.

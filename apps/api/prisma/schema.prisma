@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 enum IncidentType {
@@ -15,6 +16,7 @@ enum IncidentType {
   SUSPICIOUS
   OTHER
 }
+
 enum IncidentStatus {
   RECEIVED
   FORWARDED
@@ -24,106 +26,113 @@ enum IncidentStatus {
   CANCELLED
   REJECTED
 }
+
 enum IncidentPriority {
   LOW
   NORMAL
   HIGH
   CRITICAL
 }
+
 enum AdminRole {
   SUPER_ADMIN
   SUPERVISOR
   OFFICER
   VIEWER
 }
+
 enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
 }
+
 enum NotificationType {
   INCIDENT_CREATED
   STATUS_CHANGED
   ASSIGNMENT
   SYSTEM
 }
+
 enum PlatformType {
   IOS
   ANDROID
   WEB
 }
+
 enum OwnerType {
   CITIZEN
   ADMIN
 }
 
 model CitizenUser {
-  id              String       @id @default(uuid()) @db.Uuid
-  facebookId      String       @unique
-  fullName        String
-  email           String?
-  profileImageUrl String?
-  phone           String?
-  status          UserStatus   @default(ACTIVE)
-  lastLoginAt     DateTime     @default(now())
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id              String         @id @default(uuid()) @db.Char(36)
+  facebookId      String         @unique @db.VarChar(191)
+  fullName        String         @db.VarChar(191)
+  email           String?        @db.VarChar(320)
+  profileImageUrl String?        @db.VarChar(2048)
+  phone           String?        @db.VarChar(32)
+  status          UserStatus     @default(ACTIVE)
+  lastLoginAt     DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   incidents       Incident[]
   notifications   Notification[]
   deviceTokens    DeviceToken[]
 }
 
 model AdminUser {
-  id                    String                  @id @default(uuid()) @db.Uuid
-  username              String                  @unique
-  email                 String?                 @unique
-  passwordHash          String
-  fullName              String
-  phone                 String?
-  role                  AdminRole
-  status                UserStatus              @default(ACTIVE)
-  lastLoginAt           DateTime?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  assignedIncidents     Incident[]              @relation("CurrentAssignee")
-  statusChanges         IncidentStatusHistory[]
-  notes                 IncidentNote[]
-  assignmentsReceived   IncidentAssignment[]    @relation("AssignedTo")
-  assignmentsCreated    IncidentAssignment[]    @relation("AssignedBy")
-  notifications         Notification[]
-  auditLogs             AuditLog[]
-  updatedSettings       SystemSetting[]
+  id                  String                  @id @default(uuid()) @db.Char(36)
+  username            String                  @unique @db.VarChar(100)
+  email               String?                 @unique @db.VarChar(320)
+  passwordHash        String                  @db.VarChar(255)
+  fullName            String                  @db.VarChar(191)
+  phone               String?                 @db.VarChar(32)
+  role                AdminRole
+  status              UserStatus              @default(ACTIVE)
+  lastLoginAt         DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  assignedIncidents   Incident[]              @relation("CurrentAssignee")
+  statusChanges       IncidentStatusHistory[]
+  notes               IncidentNote[]
+  assignmentsReceived IncidentAssignment[]    @relation("AssignedTo")
+  assignmentsCreated  IncidentAssignment[]    @relation("AssignedBy")
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  updatedSettings     SystemSetting[]
 }
 
 model Incident {
-  id                  String              @id @default(uuid()) @db.Uuid
-  caseCode            String              @unique
-  citizenUserId       String              @db.Uuid
-  reporterName        String
-  reporterPhone       String
+  id                  String                  @id @default(uuid()) @db.Char(36)
+  caseCode            String                  @unique @db.VarChar(32)
+  citizenUserId       String                  @db.Char(36)
+  reporterName        String                  @db.VarChar(191)
+  reporterPhone       String                  @db.VarChar(32)
   type                IncidentType
-  description         String
-  latitude            Decimal             @db.Decimal(10, 7)
-  longitude           Decimal             @db.Decimal(10, 7)
-  address             String
-  subdistrict         String?
-  district            String?
-  province            String?
-  postalCode          String?
-  status              IncidentStatus      @default(RECEIVED)
-  priority            IncidentPriority    @default(NORMAL)
-  assignedAdminUserId String?              @db.Uuid
-  reportedAt          DateTime            @default(now())
+  description         String                  @db.Text
+  latitude            Decimal                 @db.Decimal(10, 7)
+  longitude           Decimal                 @db.Decimal(11, 7)
+  address             String                  @db.Text
+  subdistrict         String?                 @db.VarChar(191)
+  district            String?                 @db.VarChar(191)
+  province            String?                 @db.VarChar(191)
+  postalCode          String?                 @db.VarChar(16)
+  status              IncidentStatus          @default(RECEIVED)
+  priority            IncidentPriority        @default(NORMAL)
+  assignedAdminUserId String?                 @db.Char(36)
+  reportedAt          DateTime                @default(now())
   completedAt         DateTime?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  citizenUser         CitizenUser         @relation(fields: [citizenUserId], references: [id])
-  assignedAdminUser   AdminUser?          @relation("CurrentAssignee", fields: [assignedAdminUserId], references: [id])
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  citizenUser         CitizenUser             @relation(fields: [citizenUserId], references: [id])
+  assignedAdminUser   AdminUser?              @relation("CurrentAssignee", fields: [assignedAdminUserId], references: [id])
   images              IncidentImage[]
   statusHistory       IncidentStatusHistory[]
   notes               IncidentNote[]
   assignments         IncidentAssignment[]
   notifications       Notification[]
+
   @@index([status])
   @@index([type])
   @@index([reportedAt])
@@ -134,38 +143,40 @@ model Incident {
 }
 
 model IncidentImage {
-  id              String   @id @default(uuid()) @db.Uuid
-  incidentId      String   @db.Uuid
-  fileName        String
-  originalName    String
-  mimeType        String
+  id              String   @id @default(uuid()) @db.Char(36)
+  incidentId      String   @db.Char(36)
+  fileName        String   @db.VarChar(255)
+  originalName    String   @db.VarChar(255)
+  mimeType        String   @db.VarChar(100)
   fileSize        Int
-  storageProvider String
-  storageKey      String
-  imageUrl        String
+  storageProvider String   @db.VarChar(50)
+  storageKey      String   @db.VarChar(1024)
+  imageUrl        String   @db.VarChar(2048)
   createdAt       DateTime @default(now())
   incident        Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
   @@index([incidentId])
 }
 
 model IncidentStatusHistory {
-  id                   String          @id @default(uuid()) @db.Uuid
-  incidentId           String          @db.Uuid
+  id                   String          @id @default(uuid()) @db.Char(36)
+  incidentId           String          @db.Char(36)
   fromStatus           IncidentStatus?
   toStatus             IncidentStatus
-  note                 String?
-  changedByAdminUserId String?         @db.Uuid
+  note                 String?         @db.Text
+  changedByAdminUserId String?         @db.Char(36)
   changedAt            DateTime        @default(now())
   incident             Incident        @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   changedByAdminUser   AdminUser?      @relation(fields: [changedByAdminUserId], references: [id])
+
   @@index([incidentId, changedAt])
 }
 
 model IncidentNote {
-  id                 String    @id @default(uuid()) @db.Uuid
-  incidentId         String    @db.Uuid
-  adminUserId        String    @db.Uuid
-  note               String
+  id                 String    @id @default(uuid()) @db.Char(36)
+  incidentId         String    @db.Char(36)
+  adminUserId        String    @db.Char(36)
+  note               String    @db.Text
   isVisibleToCitizen Boolean   @default(false)
   createdAt          DateTime  @default(now())
   incident           Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
@@ -173,10 +184,10 @@ model IncidentNote {
 }
 
 model IncidentAssignment {
-  id                    String    @id @default(uuid()) @db.Uuid
-  incidentId            String    @db.Uuid
-  assignedToAdminUserId String    @db.Uuid
-  assignedByAdminUserId String    @db.Uuid
+  id                    String    @id @default(uuid()) @db.Char(36)
+  incidentId            String    @db.Char(36)
+  assignedToAdminUserId String    @db.Char(36)
+  assignedByAdminUserId String    @db.Char(36)
   assignedAt            DateTime  @default(now())
   unassignedAt          DateTime?
   incident              Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
@@ -185,12 +196,12 @@ model IncidentAssignment {
 }
 
 model Notification {
-  id            String           @id @default(uuid()) @db.Uuid
-  citizenUserId String?          @db.Uuid
-  adminUserId   String?          @db.Uuid
-  incidentId    String?          @db.Uuid
-  title         String
-  message       String
+  id            String           @id @default(uuid()) @db.Char(36)
+  citizenUserId String?          @db.Char(36)
+  adminUserId   String?          @db.Char(36)
+  incidentId    String?          @db.Char(36)
+  title         String           @db.VarChar(255)
+  message       String           @db.Text
   type          NotificationType
   isRead        Boolean          @default(false)
   readAt        DateTime?
@@ -198,14 +209,15 @@ model Notification {
   citizenUser   CitizenUser?     @relation(fields: [citizenUserId], references: [id])
   adminUser     AdminUser?       @relation(fields: [adminUserId], references: [id])
   incident      Incident?        @relation(fields: [incidentId], references: [id])
+
   @@index([citizenUserId, createdAt])
   @@index([adminUserId, createdAt])
 }
 
 model DeviceToken {
-  id            String       @id @default(uuid()) @db.Uuid
-  citizenUserId String       @db.Uuid
-  token         String       @unique
+  id            String       @id @default(uuid()) @db.Char(36)
+  citizenUserId String       @db.Char(36)
+  token         String       @unique @db.VarChar(512)
   platform      PlatformType
   isActive      Boolean      @default(true)
   createdAt     DateTime     @default(now())
@@ -214,37 +226,39 @@ model DeviceToken {
 }
 
 model RefreshToken {
-  id        String    @id @db.Uuid
+  id        String    @id @db.Char(36)
   ownerType OwnerType
-  ownerId   String    @db.Uuid
-  tokenHash String
+  ownerId   String    @db.Char(36)
+  tokenHash String    @db.VarChar(255)
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime  @default(now())
+
   @@index([ownerType, ownerId])
 }
 
 model AuditLog {
-  id          String    @id @default(uuid()) @db.Uuid
-  adminUserId String?   @db.Uuid
-  action      String
-  entityType  String
-  entityId    String?
+  id          String     @id @default(uuid()) @db.Char(36)
+  adminUserId String?    @db.Char(36)
+  action      String     @db.VarChar(100)
+  entityType  String     @db.VarChar(100)
+  entityId    String?    @db.VarChar(191)
   oldValue    Json?
   newValue    Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime  @default(now())
+  ipAddress   String?    @db.VarChar(45)
+  userAgent   String?    @db.Text
+  createdAt   DateTime   @default(now())
   adminUser   AdminUser? @relation(fields: [adminUserId], references: [id])
+
   @@index([createdAt])
   @@index([entityType, entityId])
 }
 
 model SystemSetting {
-  id                   String    @id @default(uuid()) @db.Uuid
-  key                  String    @unique
+  id                   String     @id @default(uuid()) @db.Char(36)
+  key                  String     @unique @db.VarChar(191)
   value                Json
-  updatedByAdminUserId String?   @db.Uuid
-  updatedAt            DateTime  @updatedAt
+  updatedByAdminUserId String?    @db.Char(36)
+  updatedAt            DateTime   @updatedAt
   updatedByAdminUser   AdminUser? @relation(fields: [updatedByAdminUserId], references: [id])
 }

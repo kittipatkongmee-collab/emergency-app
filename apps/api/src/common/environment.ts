@@ -1,12 +1,34 @@
 import { z } from 'zod';
 
+const mysqlUrl = z
+  .string()
+  .min(1)
+  .superRefine((value, ctx) => {
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol !== 'mysql:') {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'DATABASE_URL ต้องใช้ mysql:// เท่านั้น',
+        });
+      }
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'DATABASE_URL ไม่ใช่ URL ที่ถูกต้อง',
+      });
+    }
+  });
+
 const schema = z
   .object({
     NODE_ENV: z
       .enum(['development', 'test', 'staging', 'production'])
       .default('development'),
     PORT: z.coerce.number().int().positive().default(3000),
-    DATABASE_URL: z.string().min(1),
+    DATABASE_URL: mysqlUrl,
+    SHADOW_DATABASE_URL: mysqlUrl,
+    TEST_DATABASE_URL: mysqlUrl.optional(),
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
