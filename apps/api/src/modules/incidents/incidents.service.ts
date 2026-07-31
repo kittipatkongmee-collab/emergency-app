@@ -103,9 +103,9 @@ export class IncidentsService {
         principal.role === 'OFFICER' ? principal.sub : undefined,
       OR: query.keyword
         ? [
-            { caseCode: { contains: query.keyword, mode: 'insensitive' } },
-            { reporterName: { contains: query.keyword, mode: 'insensitive' } },
-            { description: { contains: query.keyword, mode: 'insensitive' } },
+            { caseCode: { contains: query.keyword } },
+            { reporterName: { contains: query.keyword } },
+            { description: { contains: query.keyword } },
           ]
         : undefined,
     };

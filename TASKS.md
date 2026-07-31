@@ -8,7 +8,7 @@
 
 ## Phase 1 — Monorepo and infrastructure
 - [x] Create pnpm workspace and root commands
-- [x] Add Docker Compose for PostgreSQL, API, Admin Web and Nginx
+- [x] Add Docker Compose for MySQL 8, API, Admin Web and Nginx
 - [x] Add environment template and Windows PowerShell scripts
 - [x] Add CI workflow and production Docker definitions
 
@@ -49,3 +49,11 @@
 - [x] Build API, Admin Web and Flutter
 - [x] Review secrets, authorization and production settings
 - [x] Complete setup and deployment documentation
+
+## Phase 7 — MySQL conversion
+- [x] Replace the PostgreSQL Prisma provider and native types with MySQL-compatible definitions
+- [x] Replace the PostgreSQL Docker service and environment variables with MySQL 8
+- [x] Separate development and test databases with reset safeguards
+- [x] Replace the PostgreSQL migration history with a fresh MySQL initial migration
+- [x] Add Unicode, persistence and MySQL connection verification
+- [x] Update scripts, engineering rules and database documentation

@@ -21,8 +21,9 @@ async function json<T>(response: Response): Promise<T> {
 async function main() {
   process.env.NODE_ENV = 'development';
   process.env.PORT = '3001';
-  process.env.DATABASE_URL ??=
-    'postgresql://police:local_development_only@127.0.0.1:5433/police_incidents?schema=public';
+  if (!process.env.DATABASE_URL?.startsWith('mysql://')) {
+    throw new Error('A MySQL DATABASE_URL is required for the smoke test');
+  }
   process.env.DEV_AUTH_BYPASS = 'true';
   process.env.CORS_ORIGINS = 'http://localhost:4200';
   process.env.STORAGE_LOCAL_PATH = 'uploads';
