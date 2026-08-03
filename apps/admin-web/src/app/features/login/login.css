@@ -1,0 +1,155 @@
+.login-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 510px);
+  align-items: center;
+  gap: clamp(30px, 6vw, 90px);
+  width: 100%;
+  min-height: calc(100vh - 68px);
+  max-width: 1450px;
+  margin: auto;
+  padding: 42px clamp(24px, 5vw, 72px);
+  overflow: hidden;
+  background: radial-gradient(circle at 25% 45%, rgba(143, 0, 16, 0.06), transparent 38%);
+}
+
+.brand {
+  min-width: 0;
+  text-align: center;
+  color: var(--primary-dark);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: clamp(155px, 15vw, 205px);
+  height: clamp(155px, 15vw, 205px);
+  margin: 0 auto 22px;
+  background: transparent;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand h1 {
+  margin: 8px 0;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  line-height: 1.35;
+}
+
+.brand > p:last-of-type {
+  font-size: 1.15rem;
+}
+
+.brand-rule {
+  position: relative;
+  height: 1px;
+  max-width: 280px;
+  margin: 28px auto;
+  background: var(--primary);
+}
+
+.brand-rule i {
+  position: absolute;
+  left: calc(50% - 7px);
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid white;
+  background: var(--primary);
+  transform: rotate(45deg);
+}
+
+.login-card {
+  width: 100%;
+  padding: clamp(25px, 3.5vw, 44px);
+  text-align: center;
+}
+
+h2 {
+  margin: 0 0 5px;
+  color: var(--primary-dark);
+  font-size: 1.8rem;
+}
+
+form {
+  display: grid;
+  gap: 13px;
+  margin-top: 25px;
+  text-align: left;
+}
+
+.password {
+  position: relative;
+}
+
+.password button {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  width: 42px;
+  height: 38px;
+  border: 0;
+  color: var(--primary);
+  background: transparent;
+}
+
+.remember {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.remember input {
+  accent-color: var(--primary);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.alert {
+  margin: 0;
+  padding: 10px;
+  border-radius: 10px;
+  color: #8d0010;
+  background: #fff0f1;
+}
+
+.submit {
+  width: 100%;
+  font-size: 1.05rem;
+}
+
+.submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.login-footer {
+  display: grid;
+  place-items: center;
+  min-height: 68px;
+  padding: 12px;
+  border-top: 1px solid #ecd4d7;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .login-page {
+    grid-template-columns: 1fr;
+    padding: 24px 18px;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .login-card {
+    max-width: 520px;
+    margin: auto;
+  }
+}

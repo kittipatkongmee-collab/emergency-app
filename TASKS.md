@@ -1,59 +1,63 @@
 # Delivery plan
 
-## Phase 0 — Analysis and design
-- [x] Inspect repository and all seven UI references
-- [x] Record assumptions and architecture
-- [x] Define database and API contracts
-- [x] Create engineering rules and identify required credentials
+ทำเครื่องหมาย `[x]` เฉพาะงานที่พัฒนาและตรวจผ่านจริงใน branch ปัจจุบัน
 
-## Phase 1 — Monorepo and infrastructure
-- [x] Create pnpm workspace and root commands
-- [x] Add Docker Compose for MySQL 8, API, Admin Web and Nginx
-- [x] Add environment template and Windows PowerShell scripts
-- [x] Add CI workflow and production Docker definitions
+## Phase 1 — Database, migration, seed, authentication
 
-## Phase 2 — Backend
-- [x] Create Prisma schema, migration and seed
-- [x] Add configuration validation, response envelope, request IDs and error handling
-- [x] Add admin/citizen authentication and RBAC
-- [x] Add incidents, status history, assignment, notes and uploads
-- [x] Add dashboard, notifications, users, settings, audit and health endpoints
-- [x] Add Socket.IO authorization and domain events
-- [x] Add Swagger and backend tests
+- [x] MySQL-compatible Prisma schema ครบ 14 models และ indexes
+- [x] Migration สำหรับ workflow, external identity, refresh rotation และ case counter
+- [x] Seed เจ้าหน้าที่ ประชาชน เหตุการณ์ history/notes/notifications
+- [x] Development citizen auth และ admin auth
+- [x] JWT access/refresh rotation, revoke, Argon2 และ environment fail-closed
+- [ ] BLOCKED: Waiting for Facebook credentials
 
-## Phase 3 — Admin website
-- [x] Create standalone Angular application and design tokens
-- [x] Add login, route guard, interceptor and session handling
-- [x] Add responsive shell, dashboard, incidents and incident detail
-- [x] Add map, users, notifications, audit, settings and profile routes
-- [x] Add loading, empty, error and not-found states
-- [x] Add Angular tests
+## Phase 2 — Incident workflow
 
-## Phase 4 — Flutter application
-- [x] Create flavors/configuration and shared design system
-- [x] Add secure login architecture and development auth adapter
-- [x] Add home, report form, image picker and location flow
-- [x] Add review, submit success, history and tracking timeline
-- [x] Add notifications, profile, privacy and permission screens
-- [x] Add Flutter tests
+- [x] Citizen create/list/detail พร้อม ownership
+- [x] Idempotency-Key และ case code แบบ atomic
+- [x] Upload validation, storage adapter และ image metadata
+- [x] Admin filter/detail/status/assignment/notes
+- [x] Status history, notifications และ audit log transaction
 
-## Phase 5 — Integration
-- [x] Connect Angular and Flutter repositories to API envelopes
-- [x] Connect upload and location persistence
-- [x] Connect authenticated realtime events
-- [x] Add end-to-end happy-path coverage
+## Phase 3 — Operations
 
-## Phase 6 — Quality and handoff
-- [x] Run formatting and lint/analyze
-- [x] Run unit/integration tests
-- [x] Build API, Admin Web and Flutter
-- [x] Review secrets, authorization and production settings
-- [x] Complete setup and deployment documentation
+- [x] Dashboard aggregate จาก MySQL จริง
+- [x] User management และ role restrictions
+- [x] Audit log, settings, notification และ device endpoints
+- [x] Health และ readiness endpoints
 
-## Phase 7 — MySQL conversion
-- [x] Replace the PostgreSQL Prisma provider and native types with MySQL-compatible definitions
-- [x] Replace the PostgreSQL Docker service and environment variables with MySQL 8
-- [x] Separate development and test databases with reset safeguards
-- [x] Replace the PostgreSQL migration history with a fresh MySQL initial migration
-- [x] Add Unicode, persistence and MySQL connection verification
-- [x] Update scripts, engineering rules and database documentation
+## Phase 4 — Angular integration
+
+- [x] Login, token storage, refresh interceptor, auth/role guards
+- [x] Dashboard, incident list/filter/detail และ realtime refresh
+- [x] Assignment, status, notes, users, notifications, audit, settings, profile
+- [x] Loading, empty, error, retry และ responsive existing design
+- [x] Angular tests หลัก
+
+## Phase 5 — Flutter integration
+
+- [x] Development login และ real citizen profile
+- [x] Incident form, validation, image picker, location adapter, review/submit
+- [x] History, detail timeline, notifications และ profile จาก API จริง
+- [x] Secure token storage, refresh rotation และ logout
+- [x] Flutter tests หลัก
+
+## Phase 6 — Realtime and external adapters
+
+- [x] Authenticated Socket.IO rooms และ incident ownership subscription
+- [x] Incident/dashboard/notification realtime events
+- [x] FCM adapter และ device-token persistence
+- [ ] BLOCKED: Waiting for Firebase credentials and mobile config files
+- [ ] BLOCKED: Waiting for restricted Google Maps keys
+- [ ] BLOCKED: Waiting for approved production logo asset
+
+## Phase 7 — Tests, security, build, documentation
+
+- [x] Backend unit tests และ isolated MySQL E2E
+- [x] Upload/RBAC/ownership/refresh/logout security coverage
+- [x] Angular tests และ production build
+- [x] Flutter analyze และ tests
+- [x] Prisma validation, migration, seed, Unicode/MySQL verification
+- [x] README และ architecture/database/API/external/deployment/E2E docs
+- [ ] Manual acceptance บนอุปกรณ์ Android จริง
+- [ ] Production credentials, S3 bucket, TLS/CORS domains และ release signing

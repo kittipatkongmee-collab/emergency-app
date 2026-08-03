@@ -1,0 +1,74 @@
+.operation-card {
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.operation-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.operation-card th,
+.operation-card td {
+  padding: 15px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.operation-card th {
+  background: #fcf8f8;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 16px 18px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-button {
+  min-width: 38px;
+  min-height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  padding: 6px 10px;
+  color: var(--primary-dark);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.page-button.active {
+  border-color: var(--primary);
+  color: white;
+  background: var(--primary);
+}
+
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ellipsis {
+  padding: 0 3px;
+  font-weight: 700;
+}
+
+@media (max-width: 650px) {
+  .operation-card {
+    overflow: auto;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+}

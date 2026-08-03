@@ -1,1 +1,81 @@
-<div class="app-shell"><aside [class.open]="open()"><button class="mobile-close" (click)="open.set(false)" aria-label="ปิดเมนู">×</button><a class="identity" routerLink="/dashboard"><div class="mini-logo" aria-label="ตำแหน่งโลโก้จริง">✦</div><strong>กองบินตำรวจ</strong><span>ระบบบริหารและรับแจ้งเหตุ</span></a><nav aria-label="เมนูหลัก">@for(item of menu;track item[2]){<a [routerLink]="item[2]" routerLinkActive="active" (click)="open.set(false)"><b>{{item[0]}}</b>{{item[1]}}</a>}</nav><a class="user" routerLink="/profile"><span>สช</span><div><b>ผู้ดูแลระบบ</b><small>เจ้าหน้าที่</small></div></a><button class="logout" (click)="auth.logout()">⇥ ออกจากระบบ</button><p class="office">สำนักงานตำรวจแห่งชาติ<br><small>ROYAL THAI POLICE</small></p></aside>@if(open()){<button class="scrim" aria-label="ปิดเมนู" (click)="open.set(false)"></button>}<div class="main"><header><button class="menu-button" (click)="open.set(true)" aria-label="เปิดเมนู">☰</button><span class="spacer"></span><a routerLink="/notifications" aria-label="การแจ้งเตือน">♢<i>2</i></a><span class="updated">◷ อัปเดตล่าสุด {{now}}</span></header><main><router-outlet/></main></div></div>
+<div class="app-shell">
+  <aside [class.open]="open()">
+    <button class="mobile-close" (click)="open.set(false)" aria-label="ปิดเมนู">×</button>
+    <a class="identity" routerLink="/dashboard">
+      <div class="mini-logo">
+        <small>กองบินตำรวจ</small><span aria-hidden="true">✈</span><b>TPAD</b>
+        <img
+          src="images/police-aviation-logo-transparent.png"
+          alt="โลโก้กองบินตำรวจ"
+          (error)="hideMissingLogo($event)"
+        />
+      </div>
+      <strong>กองบินตำรวจ</strong>
+      <span>ระบบบริหารและรับแจ้งเหตุ<br />ทางอากาศ บ.ตร.</span>
+    </a>
+    <nav aria-label="เมนูหลัก">
+      @for (item of menu(); track item[2]) {
+        <a [routerLink]="item[2]" routerLinkActive="active" (click)="open.set(false)">
+          <b>{{ item[0] }}</b
+          >{{ item[1] }}
+          @if (item[2] === '/notifications' && unread() > 0) {
+            <span class="nav-badge">{{ unread() > 99 ? '99+' : unread() }}</span>
+          }
+        </a>
+      }
+    </nav>
+    <p class="office">
+      <span class="police-seal">
+        <span aria-hidden="true">♜</span>
+        <img
+          src="images/royal-thai-police-logo.png"
+          alt="โลโก้สำนักงานตำรวจแห่งชาติ"
+          (error)="hideMissingLogo($event)"
+        />
+      </span>
+      สำนักงานตำรวจแห่งชาติ<br /><small>ROYAL THAI POLICE</small>
+    </p>
+    <div class="user-menu">
+      @if (userMenuOpen()) {
+        <div class="user-popover" role="menu" aria-label="เมนูบัญชีผู้ใช้">
+          <a routerLink="/profile" role="menuitem" (click)="closeMenus()">♙ ข้อมูลโปรไฟล์</a>
+          <a routerLink="/change-password" role="menuitem" (click)="closeMenus()"
+            >⌘ เปลี่ยนรหัสผ่าน</a
+          >
+          <button type="button" role="menuitem" (click)="logout()">⇥ ออกจากระบบ</button>
+        </div>
+      }
+      <button
+        type="button"
+        class="user"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="userMenuOpen()"
+        (click)="toggleUserMenu($event)"
+      >
+        <span>{{ (auth.user()?.fullName ?? 'จ').slice(0, 2) }}</span>
+        <div>
+          <b>{{ auth.user()?.fullName ?? 'เจ้าหน้าที่' }}</b>
+          <small>{{ auth.user()?.role ?? '' }}</small>
+        </div>
+        <i aria-hidden="true">{{ userMenuOpen() ? '⌄' : '⌃' }}</i>
+      </button>
+    </div>
+  </aside>
+  @if (open()) {
+    <button class="scrim" aria-label="ปิดเมนู" (click)="open.set(false)"></button>
+  }
+  <div class="main">
+    <header>
+      <button class="menu-button" (click)="open.set(true)" aria-label="เปิดเมนู">☰</button>
+      <span class="spacer"></span>
+      <a class="header-notification" routerLink="/notifications" aria-label="การแจ้งเตือน">
+        <span aria-hidden="true">🔔</span>
+        @if (unread() > 0) {
+          <i>{{ unread() > 99 ? '99+' : unread() }}</i>
+        }
+      </a>
+      <span class="updated">◷ อัปเดตล่าสุด {{ now }}</span>
+    </header>
+    <main><router-outlet /></main>
+  </div>
+</div>

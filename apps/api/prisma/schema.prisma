@@ -9,12 +9,8 @@ datasource db {
 }
 
 enum IncidentType {
-  ACCIDENT
-  FIRE
-  MISSING_PERSON
-  OBSTRUCTION
-  SUSPICIOUS
-  OTHER
+  AIRCRAFT_ACCIDENT
+  DISASTER_RELIEF
 }
 
 enum IncidentStatus {
@@ -47,10 +43,15 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum AuthenticationProvider {
+  DEVELOPMENT
+  FACEBOOK
+}
+
 enum NotificationType {
   INCIDENT_CREATED
-  STATUS_CHANGED
-  ASSIGNMENT
+  INCIDENT_ASSIGNED
+  INCIDENT_STATUS_CHANGED
   SYSTEM
 }
 
@@ -60,25 +61,39 @@ enum PlatformType {
   WEB
 }
 
-enum OwnerType {
+enum TokenOwnerType {
   CITIZEN
   ADMIN
 }
 
 model CitizenUser {
-  id              String         @id @default(uuid()) @db.Char(36)
-  facebookId      String         @unique @db.VarChar(191)
-  fullName        String         @db.VarChar(191)
-  email           String?        @db.VarChar(320)
-  profileImageUrl String?        @db.VarChar(2048)
-  phone           String?        @db.VarChar(32)
-  status          UserStatus     @default(ACTIVE)
-  lastLoginAt     DateTime       @default(now())
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  incidents       Incident[]
-  notifications   Notification[]
-  deviceTokens    DeviceToken[]
+  id                 String             @id @default(uuid()) @db.Char(36)
+  facebookId         String?            @unique @db.VarChar(191)
+  fullName           String             @db.VarChar(191)
+  email              String?            @db.VarChar(320)
+  profileImageUrl    String?            @db.VarChar(2048)
+  phone              String?            @db.VarChar(32)
+  status             UserStatus         @default(ACTIVE)
+  lastLoginAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  incidents          Incident[]
+  notifications      Notification[]
+  deviceTokens       DeviceToken[]
+  externalIdentities ExternalIdentity[]
+}
+
+model ExternalIdentity {
+  id             String                 @id @default(uuid()) @db.Char(36)
+  citizenUserId  String                 @db.Char(36)
+  provider       AuthenticationProvider
+  providerUserId String                 @db.VarChar(191)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  citizenUser    CitizenUser            @relation(fields: [citizenUserId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([citizenUserId])
 }
 
 model AdminUser {
@@ -106,6 +121,7 @@ model AdminUser {
 model Incident {
   id                  String                  @id @default(uuid()) @db.Char(36)
   caseCode            String                  @unique @db.VarChar(32)
+  clientRequestId     String?                 @unique @db.VarChar(191)
   citizenUserId       String                  @db.Char(36)
   reporterName        String                  @db.VarChar(191)
   reporterPhone       String                  @db.VarChar(32)
@@ -140,20 +156,22 @@ model Incident {
   @@index([assignedAdminUserId])
   @@index([province])
   @@index([createdAt])
+  @@index([priority])
+  @@index([status, reportedAt])
 }
 
 model IncidentImage {
-  id              String   @id @default(uuid()) @db.Char(36)
-  incidentId      String   @db.Char(36)
-  fileName        String   @db.VarChar(255)
-  originalName    String   @db.VarChar(255)
-  mimeType        String   @db.VarChar(100)
-  fileSize        Int
-  storageProvider String   @db.VarChar(50)
-  storageKey      String   @db.VarChar(1024)
-  imageUrl        String   @db.VarChar(2048)
-  createdAt       DateTime @default(now())
-  incident        Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid()) @db.Char(36)
+  incidentId    String   @db.Char(36)
+  fileName      String   @db.VarChar(255)
+  originalName  String   @db.VarChar(255)
+  mimeType      String   @db.VarChar(100)
+  fileSize      Int
+  storageDriver String   @db.VarChar(50)
+  storageKey    String   @db.VarChar(1024)
+  imageUrl      String   @db.VarChar(2048)
+  createdAt     DateTime @default(now())
+  incident      Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId])
 }
@@ -179,8 +197,12 @@ model IncidentNote {
   note               String    @db.Text
   isVisibleToCitizen Boolean   @default(false)
   createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
   incident           Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   adminUser          AdminUser @relation(fields: [adminUserId], references: [id])
+
+  @@index([incidentId])
+  @@index([adminUserId])
 }
 
 model IncidentAssignment {
@@ -193,6 +215,9 @@ model IncidentAssignment {
   incident              Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   assignedToAdminUser   AdminUser @relation("AssignedTo", fields: [assignedToAdminUserId], references: [id])
   assignedByAdminUser   AdminUser @relation("AssignedBy", fields: [assignedByAdminUserId], references: [id])
+
+  @@index([incidentId, assignedAt])
+  @@index([assignedToAdminUserId, unassignedAt])
 }
 
 model Notification {
@@ -212,6 +237,10 @@ model Notification {
 
   @@index([citizenUserId, createdAt])
   @@index([adminUserId, createdAt])
+  @@index([citizenUserId, isRead])
+  @@index([adminUserId, isRead])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model DeviceToken {
@@ -223,18 +252,25 @@ model DeviceToken {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   citizenUser   CitizenUser  @relation(fields: [citizenUserId], references: [id])
+
+  @@index([citizenUserId, isActive])
 }
 
 model RefreshToken {
-  id        String    @id @db.Char(36)
-  ownerType OwnerType
-  ownerId   String    @db.Char(36)
-  tokenHash String    @db.VarChar(255)
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id                String         @id @default(uuid()) @db.Char(36)
+  ownerType         TokenOwnerType
+  ownerId           String         @db.Char(36)
+  tokenHash         String         @db.VarChar(255)
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  replacedByTokenId String?        @unique @db.Char(36)
+  createdAt         DateTime       @default(now())
+  replacedByToken   RefreshToken?  @relation("RefreshTokenRotation", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replacesToken     RefreshToken?  @relation("RefreshTokenRotation")
 
   @@index([ownerType, ownerId])
+  @@index([expiresAt])
+  @@index([revokedAt])
 }
 
 model AuditLog {
@@ -252,6 +288,9 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+  @@index([adminUserId])
+  @@index([action])
+  @@index([entityType])
 }
 
 model SystemSetting {
@@ -261,4 +300,12 @@ model SystemSetting {
   updatedByAdminUserId String?    @db.Char(36)
   updatedAt            DateTime   @updatedAt
   updatedByAdminUser   AdminUser? @relation(fields: [updatedByAdminUserId], references: [id])
+}
+
+model CaseCounter {
+  id         String   @id @default(uuid()) @db.Char(36)
+  year       Int      @unique
+  lastNumber Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

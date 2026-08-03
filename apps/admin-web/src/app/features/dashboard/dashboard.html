@@ -1,4 +1,191 @@
-<section class="heading"><div><p class="eyebrow">ศูนย์บัญชาการเหตุการณ์</p><h1 class="page-title">แดชบอร์ดแจ้งเหตุ</h1><p class="muted">ติดตามและจัดการเหตุการณ์ที่แจ้งผ่านระบบแบบเรียลไทม์</p></div><a routerLink="/incidents" class="btn-primary">ดูรายการทั้งหมด</a></section>
-@if(loading()){<div class="summary-grid">@for(i of cards;track i[0]){<div class="card skeleton"></div>}</div><div class="card state"><div class="spinner"></div><p>กำลังโหลดข้อมูล…</p></div>}@else if(error()){<div class="card state"><h2>เกิดข้อผิดพลาด</h2><p class="muted">{{error()}}</p><button class="btn-outline" (click)="ngOnInit()">ลองอีกครั้ง</button></div>}@else{
-<div class="summary-grid">@for(card of cards;track card[0]){<article class="card metric"><span>{{card[1]}}</span><div><small>{{card[2]}}</small><strong>{{value(card[0])}}</strong><em>เหตุการณ์</em></div></article>}</div>
-<div class="dashboard-grid"><section class="card incidents"><header><div><h2>รายการแจ้งเหตุล่าสุด</h2><p>ข้อมูล 5 รายการล่าสุดจากระบบ</p></div><a routerLink="/incidents">ตัวกรองทั้งหมด →</a></header>@if(incidents().length===0){<div class="state"><h3>ยังไม่มีรายการแจ้งเหตุ</h3><p class="muted">รายการใหม่จะแสดงที่นี่โดยอัตโนมัติ</p></div>}@else{<div class="table-wrap"><table><thead><tr><th>วันเวลา</th><th>ผู้แจ้ง</th><th>รายละเอียด</th><th>สถานะ</th><th>ตำแหน่ง</th><th></th></tr></thead><tbody>@for(item of incidents();track item.id){<tr><td>{{item.reportedAt|date:'dd MMM y HH:mm':'':'th'}}</td><td><b>{{item.reporterName}}</b><small>{{item.reporterPhone}}</small></td><td>{{item.description}}</td><td><span class="status">{{item.status}}</span></td><td>{{item.province||item.address}}</td><td><a [routerLink]="['/incidents',item.id]" aria-label="เปิดรายละเอียด">›</a></td></tr>}</tbody></table></div>}</section><aside class="card focus">@if(incidents()[0];as item){<header><h2>เหตุการณ์ที่เลือกล่าสุด</h2><span class="status">{{item.status}}</span></header><div class="visual">⌖</div><h3>{{item.caseCode}}</h3><p>{{item.description}}</p><dl><div><dt>ผู้แจ้ง</dt><dd>{{item.reporterName}}</dd></div><div><dt>ตำแหน่ง</dt><dd>{{item.address}}</dd></div></dl><a class="btn-primary" [routerLink]="['/incidents',item.id]">ดูรายละเอียดทั้งหมด</a>}</aside></div>}
+<section class="heading">
+  <div>
+    <p class="eyebrow">ศูนย์บัญชาการเหตุการณ์</p>
+    <h1 class="page-title">แดชบอร์ดแจ้งเหตุ</h1>
+  </div>
+</section>
+
+@if (loading()) {
+  <div class="summary-grid">
+    @for (i of cards; track i[0]) {
+      <div class="card skeleton"></div>
+    }
+  </div>
+  <div class="card state">
+    <div class="spinner"></div>
+    <p>กำลังโหลดข้อมูล…</p>
+  </div>
+} @else if (error()) {
+  <div class="card state">
+    <h2>เกิดข้อผิดพลาด</h2>
+    <p class="muted">{{ error() }}</p>
+    <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+  </div>
+} @else {
+  <div class="summary-grid">
+    @for (card of cards; track card[0]; let index = $index) {
+      <article class="card metric">
+        <span class="metric-icon">{{ card[1] }}</span>
+        <div class="metric-body">
+          <small>{{ card[2] }}</small>
+          <p>
+            <strong>{{ value(card[0]) }}</strong> <em>เหตุการณ์</em>
+          </p>
+          @if (index === 0) {
+            <i>↑ {{ value('percentageChange') }}% จากสัปดาห์ที่ผ่านมา</i>
+          } @else {
+            <i>ข้อมูลปัจจุบันจากระบบ</i>
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  <div class="dashboard-grid">
+    <section class="card incidents">
+      <header>
+        <div>
+          <h2>รายการแจ้งเหตุล่าสุด</h2>
+          <p>ข้อมูลเหตุการณ์ล่าสุดจากระบบ</p>
+        </div>
+        <a routerLink="/incidents">ดูทั้งหมด →</a>
+      </header>
+      <div class="filters" aria-label="ตัวกรองรายการแจ้งเหตุ">
+        <label>
+          <span>⌕</span>
+          <input type="search" placeholder="ค้นหาเหตุการณ์ ผู้แจ้ง รายละเอียด…" />
+        </label>
+        <select aria-label="กรองตามสถานะ">
+          <option>สถานะทั้งหมด</option>
+          <option>รอการดำเนินการ</option>
+          <option>กำลังดำเนินการ</option>
+          <option>ภารกิจสำเร็จ</option>
+        </select>
+        <button class="btn-outline" type="button">ตัวกรอง</button>
+      </div>
+      @if (incidents().length === 0) {
+        <div class="state">
+          <h3>ยังไม่มีรายการแจ้งเหตุ</h3>
+          <p class="muted">รายการใหม่จะแสดงที่นี่โดยอัตโนมัติ</p>
+        </div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>วันเวลา</th>
+                <th>ผู้แจ้ง</th>
+                <th>ประเภทเหตุ</th>
+                <th>เบอร์โทรศัพท์</th>
+                <th>สถานะ</th>
+                <th>รูปภาพ</th>
+                <th>ตำแหน่ง</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of incidents(); track item.id; let first = $first) {
+                <tr [class.selected]="first">
+                  <td>{{ item.reportedAt | date: 'dd MMM y HH:mm' : '' : 'th' }}</td>
+                  <td>
+                    <b>{{ item.reporterName }}</b>
+                  </td>
+                  <td class="description">
+                    <b>{{ typeLabel(item.type) }}</b>
+                    <small>{{ item.description }}</small>
+                  </td>
+                  <td>{{ item.reporterPhone }}</td>
+                  <td>
+                    <span class="status" [attr.data-status]="item.status">{{
+                      statusLabel(item.status)
+                    }}</span>
+                  </td>
+                  <td>
+                    @if (item.images[0]) {
+                      <img
+                        class="thumb"
+                        [src]="mediaUrl(item.images[0].imageUrl)"
+                        alt="ภาพเหตุการณ์"
+                      />
+                    } @else {
+                      <span class="no-photo">ไม่มีภาพ</span>
+                    }
+                  </td>
+                  <td>{{ item.province || item.address }}</td>
+                  <td>
+                    <a [routerLink]="['/incidents', item.id]" aria-label="เปิดรายละเอียด">›</a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <footer class="table-footer">
+          <span>แสดง 1 - {{ incidents().length }} จาก {{ value('total') }} รายการ</span>
+          <div><button disabled>‹</button><b>1</b><button disabled>›</button></div>
+        </footer>
+      }
+    </section>
+
+    <div class="right-column">
+      <aside class="card focus">
+        @if (incidents()[0]; as item) {
+          <header>
+            <h2>รายละเอียดเหตุการณ์ล่าสุด</h2>
+            <span class="status" [attr.data-status]="item.status">{{
+              statusLabel(item.status)
+            }}</span>
+          </header>
+          <div class="focus-content">
+            @if (item.images[0]) {
+              <img
+                class="focus-photo"
+                [src]="mediaUrl(item.images[0].imageUrl)"
+                alt="ภาพเหตุการณ์ล่าสุด"
+              />
+            } @else {
+              <div class="focus-photo placeholder">⌖</div>
+            }
+            <div>
+              <p class="case-code">{{ item.caseCode }}</p>
+              <h3>{{ typeLabel(item.type) }}</h3>
+              <dl>
+                <div>
+                  <dt>ผู้แจ้ง</dt>
+                  <dd>{{ item.reporterName }}</dd>
+                </div>
+                <div>
+                  <dt>โทรศัพท์</dt>
+                  <dd>{{ item.reporterPhone }}</dd>
+                </div>
+                <div>
+                  <dt>ตำแหน่ง</dt>
+                  <dd>{{ item.address }}</dd>
+                </div>
+              </dl>
+              <p class="detail">{{ item.description }}</p>
+            </div>
+          </div>
+          <a class="btn-primary full" [routerLink]="['/incidents', item.id]">ดูรายละเอียดทั้งหมด</a>
+        }
+      </aside>
+
+      <aside class="card location-card">
+        @if (incidents()[0]; as item) {
+          <header>
+            <h2>ตำแหน่งเกิดเหตุ</h2>
+            <a [routerLink]="['/incidents', item.id]">เปิดรายละเอียด ↗</a>
+          </header>
+          <div class="map-preview">
+            <span class="road horizontal"></span>
+            <span class="road vertical"></span>
+            <span class="road diagonal"></span>
+            <span class="marker">●</span>
+            <p>{{ item.address }}</p>
+            <small>{{ item.latitude }}, {{ item.longitude }}</small>
+          </div>
+        }
+      </aside>
+    </div>
+  </div>
+}

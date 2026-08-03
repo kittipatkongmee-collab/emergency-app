@@ -1,0 +1,79 @@
+<h1 class="page-title">ศูนย์การแจ้งเตือน</h1>
+
+@if (pendingDelete(); as notice) {
+  <div class="modal-backdrop" (click)="cancelRemove()">
+    <section
+      class="card delete-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="delete-notification-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="delete-dialog-icon" aria-hidden="true">!</div>
+      <h2 id="delete-notification-title">ยืนยันการลบการแจ้งเตือน</h2>
+      <p>ต้องการลบ “{{ notice.title }}” ใช่หรือไม่?</p>
+      <p class="muted">เมื่อลบแล้วจะไม่สามารถเรียกคืนรายการนี้ได้</p>
+      @if (deleteError()) {
+        <p class="dialog-error" role="alert">{{ deleteError() }}</p>
+      }
+      <footer>
+        <button class="btn-outline" type="button" [disabled]="busy()" (click)="cancelRemove()">
+          ยกเลิก
+        </button>
+        <button
+          class="btn-primary delete-confirm"
+          type="button"
+          [disabled]="busy()"
+          (click)="confirmRemove()"
+        >
+          {{ busy() ? 'กำลังลบ…' : 'ยืนยันการลบ' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+<section class="card notification-list">
+  @if (loading()) {
+    <div class="state"><div class="spinner"></div></div>
+  } @else if (error()) {
+    <div class="state">
+      <p>{{ error() }}</p>
+      <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+    </div>
+  } @else if (!items().length) {
+    <div class="state">
+      <h2>ไม่มีการแจ้งเตือน</h2>
+      <p class="muted">ยังไม่มีข้อความใหม่</p>
+    </div>
+  }
+  @for (notice of items(); track notice.id) {
+    <article [class.unread]="!notice.isRead">
+      <span class="notice-icon" aria-hidden="true">🔔</span>
+      <div class="notice-content">
+        @if (notice.incidentId) {
+          <a [routerLink]="['/incidents', notice.incidentId]"
+            ><b>{{ notice.title }}</b></a
+          >
+        } @else {
+          <b>{{ notice.title }}</b>
+        }
+        <p>{{ notice.message }}</p>
+        <time>{{ notice.createdAt | date: 'd MMM y HH:mm' : '' : 'th' }}</time>
+        <div class="notice-actions">
+          @if (!notice.isRead) {
+            <button class="btn-outline" (click)="read(notice)">ทำเครื่องหมายว่าอ่านแล้ว</button>
+          }
+          <button
+            type="button"
+            class="delete-notice"
+            [attr.aria-label]="'ลบการแจ้งเตือน ' + notice.title"
+            (click)="requestRemove(notice)"
+          >
+            <span aria-hidden="true">🗑</span>
+          </button>
+        </div>
+      </div>
+    </article>
+  }
+</section>

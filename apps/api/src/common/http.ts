@@ -6,6 +6,7 @@ import {
   ExecutionContext,
   HttpException,
   Injectable,
+  Logger,
   NestInterceptor,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
@@ -14,6 +15,8 @@ import type { NextFunction, Request, Response } from 'express';
 
 @Injectable()
 export class RequestIdMiddleware {
+  private readonly logger = new Logger('HttpRequest');
+
   use(
     req: Request & { requestId?: string },
     res: Response,
@@ -24,6 +27,23 @@ export class RequestIdMiddleware {
         ? req.headers['x-request-id']
         : randomUUID();
     res.setHeader('x-request-id', req.requestId);
+    const startedAt = performance.now();
+    res.on('finish', () => {
+      const authenticated = req as Request & {
+        user?: { sub?: string };
+        requestId?: string;
+      };
+      this.logger.log(
+        JSON.stringify({
+          method: req.method,
+          path: req.path,
+          status: res.statusCode,
+          durationMs: Math.round(performance.now() - startedAt),
+          requestId: req.requestId,
+          userId: authenticated.user?.sub,
+        }),
+      );
+    });
     next();
   }
 }
@@ -54,16 +74,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
       typeof response === 'object' && response !== null && 'message' in response
         ? response.message
         : [];
+    const responseCode =
+      typeof response === 'object' && response !== null && 'code' in response
+        ? String(response.code)
+        : undefined;
     const message =
-      typeof response === 'object' && response !== null && 'error' in response
-        ? String(response.error)
+      typeof response === 'object' && response !== null && 'message' in response
+        ? Array.isArray(response.message)
+          ? 'ข้อมูลไม่ถูกต้อง'
+          : String(response.message)
         : exception instanceof Error && status < 500
           ? exception.message
           : 'ระบบไม่สามารถดำเนินการได้ กรุณาลองใหม่';
     res.status(status).json({
       success: false,
       error: {
-        code: this.code(status),
+        code: responseCode ?? this.code(status),
         message,
         details: Array.isArray(details) ? details : [details],
       },
@@ -82,7 +108,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
           409: 'CONFLICT',
           429: 'RATE_LIMITED',
         } as Record<number, string>
-      )[status] ?? 'INTERNAL_ERROR'
+      )[status] ?? 'INTERNAL_SERVER_ERROR'
     );
   }
 }

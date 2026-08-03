@@ -3,9 +3,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/app_core.dart';
 import 'features/auth/auth.dart';
 import 'features/home/home.dart';
+import 'features/information/information.dart';
 import 'features/incidents/incidents.dart';
 
 @pragma('vm:entry-point')
@@ -15,6 +17,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('th');
   if (Environment.fcmEnabled) {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
@@ -29,6 +32,12 @@ final routerProvider = Provider<GoRouter>(
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/home', builder: (_, __) => const MainShell()),
+      GoRoute(
+        path: '/information/:id',
+        builder: (_, state) => AircraftInformationDetailScreen(
+          aircraftId: state.pathParameters['id']!,
+        ),
+      ),
       GoRoute(path: '/report', builder: (_, __) => const ReportScreen()),
       GoRoute(path: '/location', builder: (_, __) => const LocationScreen()),
       GoRoute(path: '/review', builder: (_, __) => const ReviewScreen()),

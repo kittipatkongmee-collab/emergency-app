@@ -1,62 +1,138 @@
-# ระบบแจ้งเหตุและติดตามสถานะเหตุฉุกเฉิน กองบินตำรวจ
+# ระบบแจ้งเหตุและติดตามสถานะเหตุฉุกเฉิน
 
-Monorepo ประกอบด้วย Flutter สำหรับประชาชน, Angular Back Office, NestJS API, Prisma และ MySQL 8 พร้อม RBAC, upload, audit log, notification และ Socket.IO
+Monorepo สำหรับแอปประชาชน (Flutter), เว็บเจ้าหน้าที่ (Angular), API (NestJS), Prisma และ MySQL 8 รองรับ RBAC, การอัปโหลดรูป, audit log, notification และ Socket.IO
 
-## Requirements
-Node.js 22+, pnpm 11+, Docker Desktop, Flutter 3.41+ และ PowerShell 7 แนะนำบน Windows
+## สิ่งที่ต้องติดตั้ง
 
-## เริ่มต้น
-1. เปิด Docker Desktop แล้วตรวจว่า Engine ทำงาน
-2. รัน `pnpm env:configure` เพื่อสร้าง `.env` พร้อมรหัส development แบบสุ่ม (ไฟล์นี้ห้าม commit)
-3. รัน `.\scripts\setup.ps1`
-4. รัน `pnpm dev:api` และ `pnpm dev:web` หรือ `.\scripts\dev.ps1`
-5. Mobile: `cd apps/mobile`, `flutter pub get`, แล้ว `flutter run --dart-define=APP_ENV=development`
+- Node.js 22 ขึ้นไป และ pnpm 11
+- Docker Desktop (Linux containers)
+- Flutter 3.41 ขึ้นไป และ Android Studio สำหรับรัน Android emulator
+- PowerShell 7 แนะนำสำหรับ Windows
 
-MySQL 8: `pnpm db:start` (พอร์ตเริ่มต้น 3306)
-Generate: `pnpm db:generate` · Validate: `pnpm db:validate` · Migration: `pnpm db:migrate` · Deploy migration: `pnpm db:migrate:deploy` · Seed: `pnpm db:seed` · Studio: `pnpm db:studio`
+## ติดตั้งและสร้างฐานข้อมูลครั้งแรก
 
-ฐานข้อมูล development คือ `police_incident_system` และฐานข้อมูล test คือ `police_incident_test` ทั้งสองใช้ `utf8mb4`, `utf8mb4_unicode_ci` และ UTC
+เปิด Docker Desktop และรอจนขึ้น `Engine running` จากนั้นเปิด PowerShell ที่โฟลเดอร์โปรเจกต์:
 
-## ฐานข้อมูล Development และ Test
-- Reset development พร้อม seed: `pnpm db:reset`
-- Migrate test database: `pnpm db:test:migrate`
-- Reset test database: `pnpm db:test:reset`
-- ตรวจสถานะ MySQL: `pnpm db:status`
-- ตรวจภาษาไทย/Emoji: `pnpm db:verify:mysql`
+```powershell
+pnpm install
+pnpm env:configure
+pnpm db:start
+pnpm db:migrate:deploy
+pnpm db:seed
+```
 
-สคริปต์ reset ตรวจ protocol และชื่อฐานข้อมูลก่อนทุกครั้ง ห้ามใช้กับ Production
+`pnpm env:configure` สร้างไฟล์ `.env` พร้อมรหัสแบบสุ่มสำหรับ development ห้าม commit ไฟล์นี้
 
-API: `http://localhost:3000/api/v1` · Swagger: `http://localhost:3000/docs` · Admin: `http://localhost:4200`
+ฐานข้อมูล development ชื่อ `police_incident_system`, test ชื่อ `police_incident_test` และ shadow database ชื่อ `police_incident_shadow` ทุกฐานใช้ `utf8mb4`, `utf8mb4_unicode_ci` และ UTC
 
-## ตรวจคุณภาพและ Build
-`pnpm lint`, `pnpm test`, `pnpm build`, `pnpm mobile:analyze`, `pnpm mobile:test`  
-Production preview: `docker compose up --build` แล้วเปิด `http://localhost:8080`
+## เปิดระบบ
+
+เปิดแต่ละคำสั่งใน PowerShell คนละหน้าต่าง:
+
+```powershell
+pnpm db:start
+pnpm dev:api
+pnpm dev:web
+pnpm mobile:run:android
+```
+
+- API: `http://localhost:3000/api/v1`
+- Swagger: `http://localhost:3000/docs`
+- Angular: `http://localhost:4200`
+- Prisma Studio: รัน `pnpm db:studio` แล้วเปิด `http://localhost:5555`
+- Flutter Android ใช้ `10.0.2.2` เพื่อเข้าถึง API บนเครื่อง Windows
+
+คำสั่งลัด:
+
+- `pnpm start:services` เปิด MySQL, API และ Angular
+- `pnpm start:backend` เปิด MySQL และ API
+- `pnpm start:web` เปิด Angular
+- `pnpm start:app` เปิด Flutter บน emulator
+- `pnpm start:app:web` เปิด Flutter บน Chrome
+- `pnpm start:docker` build และเปิด production preview ที่ `http://localhost:8080`
+
+## Development accounts
+
+รหัสผ่านของเจ้าหน้าที่ทุกบัญชีอ่านจาก `ADMIN_SEED_PASSWORD` ใน `.env`
+
+| Username                                           | Role        |
+| -------------------------------------------------- | ----------- |
+| ค่าจาก `ADMIN_SEED_USERNAME` (ค่าเริ่มต้น `admin`) | SUPER_ADMIN |
+| `supervisor1`                                      | SUPERVISOR  |
+| `officer1`, `officer2`, `officer3`                 | OFFICER     |
+| `viewer1`                                          | VIEWER      |
+
+Development citizen login ใช้บัญชี `test1` และสร้างบัญชีให้อัตโนมัติเมื่อเข้าสู่ระบบ เปิดได้เฉพาะ `APP_ENV=development`, `NODE_ENV=development`, `DEV_AUTH_BYPASS=true`
+
+## คำสั่งฐานข้อมูล
+
+```powershell
+pnpm db:status
+pnpm db:validate
+pnpm db:generate
+pnpm db:migrate
+pnpm db:migrate:deploy
+pnpm db:seed
+pnpm db:check
+pnpm db:verify:mysql
+pnpm db:studio
+pnpm db:stop
+```
+
+ใช้ `pnpm db:reset` เฉพาะฐาน development และ `pnpm db:test:reset` เฉพาะฐาน test สคริปต์จะตรวจชื่อฐานก่อนลบเสมอ
+
+## ตรวจสอบคุณภาพ
+
+```powershell
+pnpm lint
+pnpm test
+pnpm test:api:e2e
+pnpm build
+pnpm mobile:analyze
+pnpm mobile:test
+```
+
+## Environment ที่สำคัญ
+
+- Database: `DATABASE_URL`, `SHADOW_DATABASE_URL`, `TEST_DATABASE_URL`
+- Security: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, อายุ token และ `CORS_ORIGINS`
+- Seed: `ADMIN_SEED_USERNAME`, `ADMIN_SEED_PASSWORD`, `ADMIN_SEED_FULL_NAME`
+- Storage: `STORAGE_DRIVER`, `STORAGE_LOCAL_PATH` หรือค่า `S3_*`
+- Facebook: `FACEBOOK_LOGIN_ENABLED`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`
+- Firebase: `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY`
+- Flutter: `APP_ENV`, `API_BASE_URL`, `SOCKET_URL`, `MAPS_ENABLED`, `FCM_ENABLED`, `DEV_AUTH_BYPASS`
+
+Production ต้องปิด `DEV_AUTH_BYPASS`, ใช้ secret ใหม่, CORS แบบระบุโดเมน และใช้ durable storage
 
 ## External services
-ดู `docs/facebook-login-setup.md`, `docs/firebase-setup.md` และ `docs/map-setup.md` ก่อนเปิด Facebook, push หรือแผนที่จริง โลโก้ใน UI เป็น placeholder จนกว่าจะได้รับ Asset ต้นฉบับที่อนุมัติ
 
-Build environment ของ Flutter ใช้ `APP_ENV=development|staging|production`; เปิดบริการจริงด้วย `MAPS_ENABLED=true`, `FCM_ENABLED=true`, `API_BASE_URL` และ `SOCKET_URL` ผ่าน `--dart-define` โดยห้ามฝัง Key ลงใน Dart source
+- Facebook: [docs/facebook-integration-pending.md](docs/facebook-integration-pending.md)
+- Maps: [docs/map-setup.md](docs/map-setup.md)
+- Firebase/FCM: [docs/firebase-setup.md](docs/firebase-setup.md)
+- Deployment: [docs/deployment.md](docs/deployment.md)
+
+ระบบส่วนอื่นทำงานได้โดยไม่ต้องมี credentials เหล่านี้ และ production จะไม่เปิด development provider เอง
 
 ## Windows troubleshooting
-- หาก Docker ไม่พร้อม ให้เปิด Docker Desktop แล้วตรวจด้วย `docker version`
-- หาก port 3306 ถูกใช้ ให้ตรวจด้วย `Get-NetTCPConnection -LocalPort 3306` แล้วหยุด MySQL เดิม หรือเปลี่ยน `DATABASE_PORT` และ port ใน `DATABASE_URL` ให้ตรงกัน
-- หาก PowerShell บล็อก script ใช้ `Set-ExecutionPolicy -Scope Process Bypass`
-- หาก Android emulator เรียก localhost ให้ตั้ง API URL เป็น `http://10.0.2.2:3000/api/v1`
-- ล้างฐานข้อมูล development เท่านั้นด้วย `.\scripts\reset-database.ps1 -WhatIf` เพื่อตรวจก่อน แล้วรันโดยไม่ใส่ `-WhatIf`
 
-รายละเอียดสถาปัตยกรรม ฐานข้อมูล API และ deployment อยู่ในโฟลเดอร์ `docs/`
+- Docker API/pipe not found: เปิด Docker Desktop รอ `Engine running` แล้วตรวจ `docker version`
+- Port 3306 ถูกใช้: ตรวจ `Get-NetTCPConnection -LocalPort 3306` และหยุด MySQL ตัวอื่น หรือเปลี่ยน `DATABASE_PORT` พร้อม URL ใน `.env`
+- `pnpm` ไม่พบ: รัน `corepack enable` แล้ว `corepack prepare pnpm@11.9.0 --activate`
+- PowerShell บล็อก script: รัน `Set-ExecutionPolicy -Scope Process Bypass`
+- Android ไม่พบ: เปิด emulator ใน Android Studio แล้วตรวจ `flutter devices`
+- Android เข้า localhost ไม่ได้: ใช้ `http://10.0.2.2:3000`
+- Prisma authentication failed: ตรวจให้รหัสใน `.env` ตรงกับ volume ปัจจุบัน หากเป็น development ที่ลบได้ให้ใช้ `pnpm db:reset`
 
-## Backup และ Restore
-สำรองข้อมูล development:
+## Backup และ restore
 
 ```powershell
 docker compose exec -T mysql sh -c 'mysqldump --default-character-set=utf8mb4 -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' |
   Set-Content -Encoding utf8 mysql-backup.sql
 ```
 
-กู้คืนข้อมูล:
-
 ```powershell
 Get-Content -Raw mysql-backup.sql |
   docker compose exec -T mysql sh -c 'mysql --default-character-set=utf8mb4 -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
 ```
+
+รายละเอียดเพิ่มอยู่ใน `docs/architecture.md`, `docs/database-design.md`, `docs/api-design.md` และ `docs/e2e-system-verification.md`

@@ -50,6 +50,7 @@ dependencies:
   intl: ^0.20.3
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
+  video_player: ^2.11.1
 
 dev_dependencies:
   flutter_test:
@@ -64,7 +65,6 @@ dev_dependencies:
   build_runner: ^2.15.1
   freezed: ^3.2.5
   json_serializable: ^6.14.0
-  mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -76,6 +76,18 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/police-aviation-logo.png
+    - assets/images/royal-thai-police-logo.png
+    - assets/images/bell-429-global-ranger.jpg
+    - assets/images/bell-412-ep.jpg
+    - assets/images/as365n3-dauphin.gif
+    - assets/images/aircraft/bell-429/
+    - assets/images/aircraft/bell-412/
+    - assets/images/aircraft/as365n3-dauphin/
+    - assets/videos/aircraft/bell-412/
+    - assets/videos/aircraft/as365n3-dauphin/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

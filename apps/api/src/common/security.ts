@@ -1,17 +1,16 @@
 import { IncidentStatus } from '@prisma/client';
 
-const allowedTransitions: Record<IncidentStatus, IncidentStatus[]> = {
-  RECEIVED: ['FORWARDED', 'REJECTED', 'CANCELLED'],
-  FORWARDED: ['INSPECTING', 'CANCELLED'],
-  INSPECTING: ['IN_PROGRESS', 'CANCELLED'],
-  IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
-  COMPLETED: [],
-  CANCELLED: [],
-  REJECTED: [],
-};
+export function canAcceptIncident(status: IncidentStatus) {
+  const acceptableStatuses: IncidentStatus[] = [
+    IncidentStatus.RECEIVED,
+    IncidentStatus.FORWARDED,
+    IncidentStatus.INSPECTING,
+  ];
+  return acceptableStatuses.includes(status);
+}
 
-export function canTransition(from: IncidentStatus, to: IncidentStatus) {
-  return from === to || allowedTransitions[from].includes(to);
+export function canCompleteIncident(status: IncidentStatus) {
+  return status === IncidentStatus.IN_PROGRESS;
 }
 
 export function maskPhone(phone: string) {

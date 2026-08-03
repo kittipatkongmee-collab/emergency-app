@@ -1,7 +1,162 @@
-import{DatePipe}from'@angular/common';import{ChangeDetectionStrategy,Component,inject,OnInit,signal}from'@angular/core';import{FormControl,FormGroup,ReactiveFormsModule,Validators}from'@angular/forms';import{ActivatedRoute}from'@angular/router';import{DomSanitizer,SafeResourceUrl}from'@angular/platform-browser';import{ApiService}from'../../core/api.service';import{Incident}from'../../core/models';import{environment}from'../../../environments/environment';
-@Component({standalone:true,imports:[DatePipe,ReactiveFormsModule],templateUrl:'./incident-detail.html',styleUrl:'./incident-detail.scss',changeDetection:ChangeDetectionStrategy.OnPush})
-export class IncidentDetailComponent implements OnInit{
- private readonly route=inject(ActivatedRoute);readonly item=signal<Incident|null>(null);readonly loading=signal(true);readonly error=signal('');readonly saving=signal(false);readonly form=new FormGroup({status:new FormControl('IN_PROGRESS',{nonNullable:true,validators:[Validators.required]}),note:new FormControl('',{nonNullable:true,validators:[Validators.maxLength(1000)]})});readonly id=this.route.snapshot.paramMap.get('id')!;
- constructor(private readonly api:ApiService,private readonly sanitizer:DomSanitizer){}ngOnInit(){this.api.get<Incident>(`admin/incidents/${this.id}`).subscribe({next:r=>{this.item.set(r);this.form.controls.status.setValue(r.status);this.loading.set(false)},error:()=>{this.error.set('ไม่พบหรือไม่สามารถเปิดเหตุการณ์นี้ได้');this.loading.set(false)}})}
- mapUrl(i:Incident):SafeResourceUrl{const lat=Number(i.latitude),lon=Number(i.longitude),d=.01;return this.sanitizer.bypassSecurityTrustResourceUrl(`${environment.mapEmbedBaseUrl}?bbox=${lon-d}%2C${lat-d}%2C${lon+d}%2C${lat+d}&layer=mapnik&marker=${lat}%2C${lon}`)}
- save(){if(this.form.invalid||this.saving())return;this.saving.set(true);this.api.patch<Incident>(`admin/incidents/${this.id}/status`,this.form.getRawValue()).subscribe({next:r=>{this.item.set({...r,statusHistory:[...(this.item()?.statusHistory??[]),{id:crypto.randomUUID(),toStatus:r.status,note:this.form.controls.note.value,changedAt:new Date().toISOString()}]});this.form.controls.note.setValue('');this.saving.set(false)},error:()=>{this.error.set('บันทึกสถานะไม่สำเร็จ');this.saving.set(false)}})}}
+import { DatePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs';
+import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
+import { Incident } from '../../core/models';
+import { RealtimeService } from '../../core/realtime.service';
+import { environment } from '../../../environments/environment';
+
+@Component({
+  standalone: true,
+  imports: [DatePipe],
+  templateUrl: './incident-detail.html',
+  styleUrl: './incident-detail.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class IncidentDetailComponent implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  readonly item = signal<Incident | null>(null);
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly saving = signal(false);
+  readonly confirmation = signal<'accept' | 'complete' | null>(null);
+  readonly id = this.route.snapshot.paramMap.get('id')!;
+  private cleanup?: () => void;
+
+  get canAct(): boolean {
+    return ['SUPER_ADMIN', 'SUPERVISOR', 'OFFICER'].includes(this.auth.user()?.role ?? '');
+  }
+
+  get canAccept(): boolean {
+    const status = this.item()?.status;
+    return this.canAct && ['RECEIVED', 'FORWARDED', 'INSPECTING'].includes(status ?? '');
+  }
+
+  get canComplete(): boolean {
+    const incident = this.item();
+    return (
+      this.canAct &&
+      incident?.status === 'IN_PROGRESS' &&
+      incident.assignedAdminUser?.id === this.auth.user()?.id
+    );
+  }
+
+  constructor(
+    private readonly api: ApiService,
+    private readonly sanitizer: DomSanitizer,
+    private readonly realtime: RealtimeService,
+    private readonly auth: AuthService,
+  ) {}
+
+  ngOnInit() {
+    this.load();
+    this.cleanup = this.realtime.on('incident.updated', () => this.load(false));
+  }
+
+  ngOnDestroy() {
+    this.cleanup?.();
+  }
+
+  load(showLoading = true) {
+    if (showLoading) this.loading.set(true);
+    this.error.set('');
+    this.api.get<Incident>(`admin/incidents/${this.id}`).subscribe({
+      next: (incident) => {
+        this.item.set(incident);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('ไม่พบหรือไม่สามารถเปิดเหตุการณ์นี้ได้');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  mapUrl(incident: Incident): SafeResourceUrl {
+    const latitude = Number(incident.latitude);
+    const longitude = Number(incident.longitude);
+    const delta = 0.01;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `${environment.mapEmbedBaseUrl}?bbox=${longitude - delta}%2C${latitude - delta}%2C${longitude + delta}%2C${latitude + delta}&layer=mapnik&marker=${latitude}%2C${longitude}`,
+    );
+  }
+
+  mapExternalUrl(incident: Incident): string {
+    const latitude = Number(incident.latitude);
+    const longitude = Number(incident.longitude);
+    return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
+  }
+
+  mediaUrl(path: string): string {
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${environment.mediaBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+
+  typeLabel(type: string): string {
+    return (
+      {
+        AIRCRAFT_ACCIDENT: 'อากาศยานประสบภัย',
+        DISASTER_RELIEF: 'ช่วยเหลือบรรเทาสาธารณภัย',
+      }[type] ?? type
+    );
+  }
+
+  statusLabel(status: string): string {
+    return (
+      {
+        RECEIVED: 'รับแจ้งแล้ว',
+        FORWARDED: 'ส่งต่อเจ้าหน้าที่',
+        INSPECTING: 'กำลังตรวจสอบ',
+        IN_PROGRESS: 'กำลังดำเนินการ',
+        COMPLETED: 'ภารกิจสำเร็จ',
+        CANCELLED: 'ยกเลิก',
+        REJECTED: 'ปฏิเสธ',
+      }[status] ?? status
+    );
+  }
+
+  openConfirmation(action: 'accept' | 'complete') {
+    if (this.saving()) return;
+    this.confirmation.set(action);
+  }
+
+  closeConfirmation() {
+    if (!this.saving()) this.confirmation.set(null);
+  }
+
+  confirmWorkflowAction() {
+    const action = this.confirmation();
+    if (!action || this.saving()) return;
+    this.saving.set(true);
+    this.api
+      .patch<Incident>(`admin/incidents/${this.id}/${action}`, {})
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (incident) => {
+          this.item.set(incident);
+          this.confirmation.set(null);
+          this.error.set('');
+        },
+        error: () => {
+          this.confirmation.set(null);
+          this.load(false);
+          this.error.set(
+            action === 'accept'
+              ? 'รับแจ้งเหตุไม่สำเร็จ อาจมีเจ้าหน้าที่คนอื่นรับไปแล้ว'
+              : 'ยืนยันภารกิจสำเร็จไม่สำเร็จ กรุณาตรวจสอบผู้รับผิดชอบ',
+          );
+        },
+      });
+  }
+
+}

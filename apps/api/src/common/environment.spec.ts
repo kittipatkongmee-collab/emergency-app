@@ -31,4 +31,34 @@ describe('validateEnvironment', () => {
       ).toThrow('DATABASE_URL ต้องใช้ mysql:// เท่านั้น');
     },
   );
+
+  it('rejects development authentication bypass in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment,
+        NODE_ENV: 'production',
+        DEV_AUTH_BYPASS: 'true',
+      }),
+    ).toThrow('ห้ามเปิด Development Auth Bypass ใน Production');
+  });
+
+  it('rejects FCM when service-account credentials are incomplete', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment,
+        FCM_ENABLED: 'true',
+      }),
+    ).toThrow('เปิด FCM ได้เมื่อกำหนด service-account credentials ครบแล้ว');
+  });
+
+  it('rejects local file storage in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment,
+        NODE_ENV: 'production',
+        DEV_AUTH_BYPASS: 'false',
+        STORAGE_DRIVER: 'local',
+      }),
+    ).toThrow('Production ต้องใช้ durable S3-compatible storage');
+  });
 });

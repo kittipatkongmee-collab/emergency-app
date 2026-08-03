@@ -17,19 +17,20 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
-    ,"prisma:format": "prisma format"
-    ,"prisma:generate": "prisma generate"
-    ,"prisma:validate": "prisma validate"
-    ,"prisma:migrate": "prisma migrate dev"
-    ,"prisma:deploy": "prisma migrate deploy"
-    ,"prisma:reset": "prisma migrate reset --force --skip-seed"
-    ,"prisma:seed": "tsx prisma/seed.ts"
-    ,"prisma:studio": "prisma studio"
-    ,"check:db": "tsx scripts/check-db.ts"
-    ,"verify:mysql": "tsx scripts/verify-mysql.ts"
-    ,"openapi:generate": "ts-node scripts/generate-openapi.ts"
-    ,"test:smoke": "ts-node scripts/smoke-e2e.ts"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "prisma:format": "prisma format",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:reset": "prisma migrate reset --force --skip-seed --skip-generate",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:studio": "prisma studio",
+    "check:db": "tsx scripts/check-db.ts",
+    "clear:development-citizens": "tsx scripts/clear-development-citizen-data.ts",
+    "verify:mysql": "tsx scripts/verify-mysql.ts",
+    "openapi:generate": "ts-node scripts/generate-openapi.ts",
+    "test:smoke": "ts-node scripts/smoke-e2e.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -1,0 +1,76 @@
+<h1 class="page-title">ประวัติการดำเนินการ</h1>
+<section class="card operation-card">
+  @if (loading()) {
+    <div class="state"><div class="spinner"></div></div>
+  } @else if (error()) {
+    <div class="state">
+      <p>{{ error() }}</p>
+      <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+    </div>
+  } @else if (!items().length) {
+    <div class="state"><h2>ยังไม่มีประวัติ</h2></div>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>วันเวลา</th>
+          <th>ผู้ดำเนินการ</th>
+          <th>การกระทำ</th>
+          <th>ข้อมูล</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (audit of items(); track audit.id) {
+          <tr>
+            <td>{{ audit.createdAt | date: 'd MMM y HH:mm' : '' : 'th' }}</td>
+            <td>{{ audit.adminUser?.fullName || 'ระบบ' }}</td>
+            <td>
+              <b>{{ actionLabel(audit.action) }}</b>
+            </td>
+            <td>{{ informationLabel(audit) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (pagination().totalPages > 1) {
+      <footer class="pagination" aria-label="เลือกหน้าประวัติการดำเนินการ">
+        <span>แสดง {{ rangeStart() }}–{{ rangeEnd() }} จาก {{ pagination().total }} รายการ</span>
+        <nav class="pagination-controls" aria-label="หน้ารายการประวัติ">
+          <button
+            type="button"
+            class="page-button"
+            [disabled]="pagination().page === 1"
+            (click)="selectPage(pagination().page - 1)"
+          >
+            ก่อนหน้า
+          </button>
+          @if (showLeadingEllipsis()) {
+            <span class="ellipsis">…</span>
+          }
+          @for (page of visiblePages(); track page) {
+            <button
+              type="button"
+              class="page-button"
+              [class.active]="page === pagination().page"
+              [attr.aria-current]="page === pagination().page ? 'page' : null"
+              (click)="selectPage(page)"
+            >
+              {{ page }}
+            </button>
+          }
+          @if (showTrailingEllipsis()) {
+            <span class="ellipsis">…</span>
+          }
+          <button
+            type="button"
+            class="page-button"
+            [disabled]="pagination().page === pagination().totalPages"
+            (click)="selectPage(pagination().page + 1)"
+          >
+            ถัดไป
+          </button>
+        </nav>
+      </footer>
+    }
+  }
+</section>
