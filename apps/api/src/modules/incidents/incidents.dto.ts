@@ -1,7 +1,11 @@
 import { IncidentPriority, IncidentStatus, IncidentType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDateString,
   IsEnum,
+  IsIn,
+  IsInt,
   IsLatitude,
   IsLongitude,
   IsOptional,
@@ -9,7 +13,8 @@ import {
   IsString,
   IsUUID,
   Length,
-  MaxLength,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class CreateIncidentDto {
@@ -30,15 +35,30 @@ export class IncidentQueryDto {
   @IsOptional() @IsString() keyword?: string;
   @IsOptional() @IsEnum(IncidentStatus) status?: IncidentStatus;
   @IsOptional() @IsEnum(IncidentType) type?: IncidentType;
-  @IsOptional() @IsString() page?: string;
-  @IsOptional() @IsString() limit?: string;
-}
-export class StatusDto {
-  @IsEnum(IncidentStatus) status!: IncidentStatus;
-  @IsOptional() @IsString() @MaxLength(1000) note?: string;
-}
-export class AssignmentDto {
-  @IsUUID() assignedAdminUserId!: string;
+  @IsOptional() @IsEnum(IncidentPriority) priority?: IncidentPriority;
+  @IsOptional() @IsUUID() assignedAdminUserId?: string;
+  @IsOptional() @IsString() province?: string;
+  @IsOptional() @IsDateString() dateFrom?: string;
+  @IsOptional() @IsDateString() dateTo?: string;
+  @IsOptional()
+  @IsIn([
+    'reportedAt',
+    'createdAt',
+    'updatedAt',
+    'caseCode',
+    'priority',
+    'status',
+  ])
+  sortBy?:
+    | 'reportedAt'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'caseCode'
+    | 'priority'
+    | 'status';
+  @IsOptional() @IsIn(['asc', 'desc']) sortOrder?: 'asc' | 'desc';
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
 }
 export class NoteDto {
   @IsString() @Length(2, 2000) note!: string;

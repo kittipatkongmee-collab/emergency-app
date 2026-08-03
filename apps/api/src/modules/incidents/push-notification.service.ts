@@ -21,6 +21,7 @@ export class PushNotificationService
   constructor(private readonly prisma: PrismaService) {}
 
   onModuleInit() {
+    if (process.env.FCM_ENABLED !== 'true') return;
     const projectId = process.env.FCM_PROJECT_ID;
     const clientEmail = process.env.FCM_CLIENT_EMAIL;
     const privateKey = process.env.FCM_PRIVATE_KEY?.replaceAll('\\n', '\n');
@@ -44,12 +45,17 @@ export class PushNotificationService
       select: { token: true },
     });
     if (!devices.length) return;
+    const statusLabel =
+      {
+        IN_PROGRESS: 'กำลังดำเนินการ',
+        COMPLETED: 'ภารกิจสำเร็จ',
+      }[status] ?? status;
     try {
       await this.messaging.sendEachForMulticast({
         tokens: devices.map((device) => device.token),
         notification: {
           title: 'สถานะเหตุการณ์เปลี่ยนแปลง',
-          body: `${caseCode}: ${status}`,
+          body: `${caseCode}: ${statusLabel}`,
         },
         data: { caseCode, status },
       });

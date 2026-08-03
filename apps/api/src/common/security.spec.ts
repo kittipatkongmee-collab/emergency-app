@@ -1,4 +1,4 @@
-import { canTransition, maskPhone } from './security';
+import { canAcceptIncident, canCompleteIncident, maskPhone } from './security';
 
 describe('security utilities', () => {
   it('masks personally identifiable phone digits', () => {
@@ -6,9 +6,12 @@ describe('security utilities', () => {
     expect(maskPhone('123')).toBe('***');
   });
 
-  it('allows only forward operational status transitions', () => {
-    expect(canTransition('RECEIVED', 'FORWARDED')).toBe(true);
-    expect(canTransition('IN_PROGRESS', 'COMPLETED')).toBe(true);
-    expect(canTransition('COMPLETED', 'RECEIVED')).toBe(false);
+  it('enforces the two-step incident workflow', () => {
+    expect(canAcceptIncident('RECEIVED')).toBe(true);
+    expect(canAcceptIncident('FORWARDED')).toBe(true);
+    expect(canAcceptIncident('INSPECTING')).toBe(true);
+    expect(canAcceptIncident('IN_PROGRESS')).toBe(false);
+    expect(canCompleteIncident('IN_PROGRESS')).toBe(true);
+    expect(canCompleteIncident('COMPLETED')).toBe(false);
   });
 });

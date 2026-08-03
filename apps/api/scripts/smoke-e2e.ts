@@ -47,39 +47,38 @@ async function main() {
     }),
   );
   await app.listen(3001, '127.0.0.1');
-  await app
-    .get(AuthService)
-    .citizenFacebook(`dev-preflight-${Date.now()}`, 'ผู้ทดสอบระบบ');
+  await app.get(AuthService).citizenDevelopment('dev-citizen-1');
 
   const base = 'http://127.0.0.1:3001/api/v1';
   try {
     const citizenTokens = await json<{ accessToken: string }>(
-      await fetch(`${base}/auth/facebook`, {
+      await fetch(`${base}/auth/development-login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          accessToken: `dev-e2e-${Date.now()}`,
-          fullName: 'ผู้ทดสอบระบบ',
+          profileId: 'dev-citizen-1',
         }),
       }),
     );
     const incident = await json<{ id: string; caseCode: string }>(
       await fetch(`${base}/incidents`, {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${citizenTokens.accessToken}`,
-          'content-type': 'application/json',
-        },
         body: JSON.stringify({
           reporterName: 'ผู้ทดสอบระบบ',
           reporterPhone: '0812345678',
-          type: 'OBSTRUCTION',
+          type: 'AIRCRAFT_ACCIDENT',
           description: 'ทดสอบเหตุสิ่งกีดขวางบนถนนจากระบบ end-to-end',
           latitude: '13.9126000',
           longitude: '100.6068000',
           address: 'ถนนวิภาวดีรังสิต เขตดอนเมือง กรุงเทพมหานคร',
           province: 'กรุงเทพมหานคร',
         }),
+        // Re-running this smoke command must not create the same request twice.
+        headers: {
+          authorization: `Bearer ${citizenTokens.accessToken}`,
+          'content-type': 'application/json',
+          'idempotency-key': `smoke-${Date.now()}`,
+        },
       }),
     );
     const form = new FormData();

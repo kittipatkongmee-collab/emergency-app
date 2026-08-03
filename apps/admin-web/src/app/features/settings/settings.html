@@ -1,0 +1,24 @@
+<h1 class="page-title">ตั้งค่าระบบ</h1>
+<form class="card settings" [formGroup]="form" (ngSubmit)="save()">
+  @if (loading()) {
+    <div class="spinner"></div>
+  }
+  <div class="field">
+    <label for="contact-phone">หมายเลขฉุกเฉิน</label
+    ><input id="contact-phone" formControlName="phone" />
+  </div>
+  <div class="field">
+    <label for="contact-hours">เวลาทำการ</label
+    ><input id="contact-hours" formControlName="hours" />
+  </div>
+  <div class="field">
+    <label for="announcement">ข้อความประกาศ</label
+    ><textarea id="announcement" rows="4" formControlName="announcement"></textarea>
+  </div>
+  <button class="btn-primary" [disabled]="saving()">
+    {{ saving() ? 'กำลังบันทึก…' : 'บันทึกการตั้งค่า' }}
+  </button>
+  @if (message()) {
+    <p role="status">{{ message() }}</p>
+  }
+</form>

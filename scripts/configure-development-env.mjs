@@ -69,6 +69,10 @@ replacements.set(
   'TEST_DATABASE_URL',
   `mysql://${testDatabaseUser}:${testDatabasePassword}@localhost:3306/${testDatabaseName}`,
 );
+replacements.set('DEV_AUTH_BYPASS', 'true');
+replacements.set('FACEBOOK_LOGIN_ENABLED', 'false');
+replacements.set('FCM_ENABLED', 'false');
+replacements.set('MAP_PROVIDER', replacements.get('MAP_PROVIDER') || 'development');
 
 for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
   const value = replacements.get(key) ?? '';

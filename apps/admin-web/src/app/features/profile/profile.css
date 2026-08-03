@@ -1,0 +1,37 @@
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  max-width: 700px;
+  margin-top: 20px;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.profile > span {
+  display: grid;
+  place-items: center;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(135deg, #ad0014, #5d0008);
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.profile h2 {
+  margin: 4px 0;
+}
+
+.profile a {
+  display: inline-block;
+  margin-top: 12px;
+}
+
+@media (max-width: 650px) {
+  .profile {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

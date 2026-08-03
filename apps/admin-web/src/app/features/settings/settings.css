@@ -1,0 +1,12 @@
+.settings {
+  display: grid;
+  gap: 16px;
+  max-width: 680px;
+  margin-top: 20px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.settings button {
+  justify-self: start;
+}

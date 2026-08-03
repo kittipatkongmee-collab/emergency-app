@@ -1,11 +1,26 @@
 # Deployment
 
-Use Docker Compose for a production preview and a managed MySQL 8/S3 service for production. Terminate TLS at the edge, set strict CORS origins, rotate database/JWT/S3 credentials, disable development bypass and decide whether Swagger is exposed.
+## Production checklist
 
-1. Copy `.env.example` to `.env` and replace every secret placeholder.
-2. Build immutable API and Admin Web images.
-3. Run Prisma deploy migrations before starting new API replicas.
-4. Mount durable local uploads only for previews; use S3-compatible storage for multi-replica deployments.
-5. Expose only Nginx, keep MySQL private, and monitor `/api/v1/health` plus `/api/v1/ready`.
+1. ใช้ managed MySQL 8 ที่ `utf8mb4`, `utf8mb4_unicode_ci`, UTC และเปิด TLS
+2. ใช้ JWT/database/S3 secrets ที่สุ่มใหม่จาก secret manager
+3. ตั้ง `NODE_ENV=production`, `DEV_AUTH_BYPASS=false` และ CORS เฉพาะ origin จริง
+4. ใช้ S3-compatible durable storage เมื่อมี API มากกว่าหนึ่ง replica
+5. build immutable API/Admin images
+6. สำรองข้อมูล แล้วรัน `prisma migrate deploy` ก่อนสลับ traffic
+7. expose เฉพาะ TLS reverse proxy; ไม่ expose MySQL
+8. monitor `/api/v1/health`, `/api/v1/ready`, logs, DB pool, disk/object storage
+9. ทดสอบ rollback, database restore และ secret rotation
 
-Back up MySQL with `mysqldump` and object storage together. Test restore and token-secret rotation before go-live. MySQL must use `utf8mb4`, `utf8mb4_unicode_ci` and UTC in every environment.
+## Docker production preview
+
+```powershell
+pnpm env:configure
+pnpm start:docker
+```
+
+เปิด `http://localhost:8080` โดย Compose จะใช้ durable named volumes `mysql_data` และ `uploads` ข้อมูลยังอยู่เมื่อ restart container แต่ `docker compose down -v` จะลบ volume และข้อมูล
+
+## Release workflow
+
+Task branches merge เข้า `develop` ก่อน หลัง staging verification และได้รับคำสั่ง production release จึง merge `develop` เข้า `main` ห้ามรัน development reset script กับ production

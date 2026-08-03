@@ -1,10 +1,60 @@
 <main class="login-page">
- <section class="brand" aria-labelledby="brand-title"><div class="brand-mark" aria-label="ตำแหน่งโลโก้กองบินตำรวจ">✦<span>TPAD</span></div><p class="eyebrow">สำนักงานตำรวจแห่งชาติ</p><h1 id="brand-title">ระบบบริหารจัดการ<br>แจ้งเหตุและติดตามสถานะ</h1><p>กองบินตำรวจ</p><div class="brand-rule"><i></i></div></section>
- <section class="login-card card"><div class="officer-icon">♙</div><h2>เข้าสู่ระบบเจ้าหน้าที่</h2><p class="muted">ระบบบริหารจัดการแจ้งเหตุและติดตามสถานะ</p>
- <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-  <div class="field"><label for="username">ชื่อผู้ใช้</label><input id="username" formControlName="username" autocomplete="username" placeholder="กรอกชื่อผู้ใช้"></div>@if(form.controls.username.touched&&form.controls.username.invalid){<small class="error">กรุณากรอกชื่อผู้ใช้</small>}
-  <div class="field password"><label for="password">รหัสผ่าน</label><input id="password" formControlName="password" autocomplete="current-password" [type]="showPassword()?'text':'password'" placeholder="กรอกรหัสผ่าน"><button type="button" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword()?'ซ่อนรหัสผ่าน':'แสดงรหัสผ่าน'">◉</button></div>@if(form.controls.password.touched&&form.controls.password.invalid){<small class="error">กรุณากรอกรหัสผ่านอย่างน้อย 8 ตัวอักษร</small>}
-  <label class="remember"><input type="checkbox" formControlName="rememberMe"> จดจำการเข้าสู่ระบบ</label>@if(error()){<p class="alert" role="alert">{{error()}}</p>}<button class="btn-primary submit" type="submit" [disabled]="loading()">{{loading()?'กำลังเข้าสู่ระบบ…':'🔒 เข้าสู่ระบบ'}}</button>
- </form><div class="divider">หรือ</div><button class="smart-card" type="button" disabled>▣ เข้าสู่ระบบด้วย Smart Card <small>(เร็ว ๆ นี้)</small></button><div class="help">🎧 <span><b>หากมีปัญหาในการใช้งาน</b><br>โทรศัพท์ 0 2509 1520</span></div>
- </section>
-</main><footer class="login-footer">ระบบนี้สำหรับเจ้าหน้าที่กองบินตำรวจเท่านั้น · © 2026 กองบินตำรวจ</footer>
+  <section class="brand" aria-labelledby="brand-title">
+    <div class="brand-mark">
+      <img src="images/police-aviation-logo-transparent.png" alt="โลโก้กองบินตำรวจ" />
+    </div>
+    <p class="eyebrow">กองบินตำรวจ</p>
+    <h1 id="brand-title">ระบบบริหารจัดการ<br />แจ้งเหตุและติดตามสถานะ</h1>
+    <p>กองบินตำรวจ</p>
+    <div class="brand-rule"><i></i></div>
+  </section>
+  <section class="login-card card">
+    <h2>เข้าสู่ระบบเจ้าหน้าที่</h2>
+    <p class="muted">ระบบบริหารจัดการแจ้งเหตุและติดตามสถานะ</p>
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="username">ชื่อผู้ใช้</label
+        ><input
+          id="username"
+          formControlName="username"
+          autocomplete="username"
+          placeholder="กรอกชื่อผู้ใช้"
+        />
+      </div>
+      @if (form.controls.username.touched && form.controls.username.invalid) {
+        <small class="error">กรุณากรอกชื่อผู้ใช้</small>
+      }
+      <div class="field password">
+        <label for="password">รหัสผ่าน</label
+        ><input
+          id="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [type]="showPassword() ? 'text' : 'password'"
+          placeholder="กรอกรหัสผ่าน"
+        /><button
+          type="button"
+          (click)="showPassword.set(!showPassword())"
+          [attr.aria-label]="showPassword() ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'"
+        >
+          ◉
+        </button>
+      </div>
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <small class="error">กรุณากรอกรหัสผ่านอย่างน้อย 8 ตัวอักษร</small>
+      }
+      <label class="remember"
+        ><input type="checkbox" formControlName="rememberMe" /> จดจำการเข้าสู่ระบบ</label
+      >
+      @if (error()) {
+        <p class="alert" role="alert">{{ error() }}</p>
+      }
+      <button class="btn-primary submit" type="submit" [disabled]="loading()">
+        {{ loading() ? 'กำลังเข้าสู่ระบบ…' : '🔒 เข้าสู่ระบบ' }}
+      </button>
+    </form>
+  </section>
+</main>
+<footer class="login-footer">
+  ระบบนี้สำหรับเจ้าหน้าที่กองบินตำรวจเท่านั้น · © 2026 กองบินตำรวจ
+</footer>

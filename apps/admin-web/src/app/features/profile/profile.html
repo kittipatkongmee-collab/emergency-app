@@ -1,0 +1,10 @@
+<h1 class="page-title">โปรไฟล์เจ้าหน้าที่</h1>
+<section class="card profile">
+  <span>{{ (auth.user()?.fullName ?? 'จ').slice(0, 2) }}</span>
+  <div>
+    <p class="eyebrow">บัญชีผู้ใช้งานปัจจุบัน</p>
+    <h2>{{ auth.user()?.fullName }}</h2>
+    <p class="muted">{{ auth.user()?.username }} · {{ auth.user()?.role }}</p>
+    <a routerLink="/change-password" class="btn-outline">เปลี่ยนรหัสผ่าน</a>
+  </div>
+</section>

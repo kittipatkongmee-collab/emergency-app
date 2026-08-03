@@ -1,0 +1,276 @@
+<h1 class="page-title">จัดการผู้ใช้งาน</h1>
+@if (canCreate()) {
+  <button type="button" class="btn-primary add-staff-button" (click)="openCreateDialog()">
+    เพิ่มเจ้าหน้าที่
+  </button>
+}
+@if (message() && !createDialogOpen() && !editDialogOpen()) {
+  <p class="page-message" role="status">{{ message() }}</p>
+}
+
+@if (canCreate() && createDialogOpen()) {
+  <div class="modal-backdrop" (click)="closeCreateDialog()">
+    <section
+      class="card staff-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-staff-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <h2 id="create-staff-title">เพิ่มเจ้าหน้าที่</h2>
+          <p class="muted">กรอกข้อมูลบัญชีและกำหนดสิทธิ์การใช้งาน</p>
+        </div>
+        <button
+          type="button"
+          class="dialog-close"
+          aria-label="ปิดหน้าต่างเพิ่มเจ้าหน้าที่"
+          [disabled]="saving()"
+          (click)="closeCreateDialog()"
+        >
+          ×
+        </button>
+      </header>
+      <form class="staff-form" [formGroup]="form" (ngSubmit)="create()">
+        <div class="field">
+          <label for="staff-username">ชื่อผู้ใช้</label>
+          <input id="staff-username" autocomplete="username" formControlName="username" />
+        </div>
+        <div class="field">
+          <label for="staff-name">ชื่อ-นามสกุล</label>
+          <input id="staff-name" autocomplete="name" formControlName="fullName" />
+        </div>
+        <div class="field">
+          <label for="staff-role">บทบาท</label>
+          <select id="staff-role" formControlName="role">
+            <option value="OFFICER">เจ้าหน้าที่ปฏิบัติการ</option>
+            @if (auth.user()?.role === 'SUPER_ADMIN') {
+              <option value="SUPERVISOR">หัวหน้าศูนย์</option>
+              <option value="VIEWER">ผู้ดูข้อมูล</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="staff-password">รหัสผ่านเริ่มต้น</label>
+          <input
+            id="staff-password"
+            type="password"
+            autocomplete="new-password"
+            formControlName="password"
+          />
+        </div>
+        @if (message()) {
+          <p class="form-message" role="status">{{ message() }}</p>
+        }
+        <footer class="dialog-actions">
+          <button
+            type="button"
+            class="btn-outline"
+            [disabled]="saving()"
+            (click)="closeCreateDialog()"
+          >
+            ยกเลิก
+          </button>
+          <button class="btn-primary" [disabled]="saving()">
+            {{ saving() ? 'กำลังเพิ่ม…' : 'เพิ่มเจ้าหน้าที่' }}
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (editDialogOpen() && selectedUser(); as user) {
+  <div class="modal-backdrop" (click)="closeEditDialog()">
+    <section
+      class="card staff-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-staff-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <h2 id="edit-staff-title">แก้ไขข้อมูลเจ้าหน้าที่</h2>
+          <p class="muted">ชื่อผู้ใช้ {{ user.username }}</p>
+        </div>
+        <button
+          type="button"
+          class="dialog-close"
+          aria-label="ปิดหน้าต่างแก้ไขเจ้าหน้าที่"
+          [disabled]="saving()"
+          (click)="closeEditDialog()"
+        >
+          ×
+        </button>
+      </header>
+      <form class="staff-form" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="field">
+          <label for="edit-staff-name">ชื่อ-นามสกุล</label>
+          <input id="edit-staff-name" autocomplete="name" formControlName="fullName" />
+        </div>
+        <div class="field">
+          <label for="edit-staff-email">อีเมล</label>
+          <input id="edit-staff-email" type="email" autocomplete="email" formControlName="email" />
+        </div>
+        <div class="field">
+          <label for="edit-staff-phone">หมายเลขโทรศัพท์</label>
+          <input id="edit-staff-phone" autocomplete="tel" formControlName="phone" />
+        </div>
+        <div class="field">
+          <label for="edit-staff-role">บทบาท</label>
+          <select id="edit-staff-role" formControlName="role">
+            <option value="OFFICER">เจ้าหน้าที่ปฏิบัติการ</option>
+            @if (auth.user()?.role === 'SUPER_ADMIN') {
+              <option value="SUPERVISOR">หัวหน้าศูนย์</option>
+              <option value="VIEWER">ผู้ดูข้อมูล</option>
+              <option value="SUPER_ADMIN">ผู้ดูแลระบบสูงสุด</option>
+            }
+          </select>
+        </div>
+        @if (message()) {
+          <p class="form-message" role="status">{{ message() }}</p>
+        }
+        <footer class="dialog-actions">
+          <button
+            type="button"
+            class="btn-outline"
+            [disabled]="saving()"
+            (click)="closeEditDialog()"
+          >
+            ยกเลิก
+          </button>
+          <button class="btn-primary" [disabled]="saving()">
+            {{ saving() ? 'กำลังบันทึก…' : 'บันทึกการแก้ไข' }}
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (pendingAction(); as action) {
+  <div class="modal-backdrop" (click)="closeConfirmation()">
+    <section
+      class="card confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-user-action-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirm-icon" [class.danger]="action.kind === 'delete'" aria-hidden="true">
+        {{ action.kind === 'delete' ? '!' : '✓' }}
+      </div>
+      <h2 id="confirm-user-action-title">
+        {{ action.kind === 'delete' ? 'ยืนยันการลบบัญชี' : 'ยืนยันการเปลี่ยนสถานะ' }}
+      </h2>
+      <p>
+        @if (action.kind === 'delete') {
+          ต้องการลบบัญชี “{{ action.user.fullName }}” ใช่หรือไม่?
+        } @else {
+          ต้องการ{{ action.user.status === 'ACTIVE' ? 'ปิด' : 'เปิด' }}ใช้งานบัญชี “{{
+            action.user.fullName
+          }}” ใช่หรือไม่?
+        }
+      </p>
+      @if (action.kind === 'delete') {
+        <p class="confirm-note">บัญชีที่มีประวัติการใช้งานจะต้องใช้การปิดใช้งานแทน</p>
+      }
+      @if (actionError()) {
+        <p class="form-message" role="alert">{{ actionError() }}</p>
+      }
+      <footer class="dialog-actions">
+        <button
+          type="button"
+          class="btn-outline"
+          [disabled]="actionBusy()"
+          (click)="closeConfirmation()"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="button"
+          class="btn-primary"
+          [class.danger-button]="action.kind === 'delete'"
+          [disabled]="actionBusy()"
+          (click)="confirmPendingAction()"
+        >
+          {{ actionBusy() ? 'กำลังดำเนินการ…' : 'ยืนยัน' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+<section class="card operation-card">
+  @if (loading()) {
+    <div class="state"><div class="spinner"></div></div>
+  } @else if (error()) {
+    <div class="state">
+      <p>{{ error() }}</p>
+      <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+    </div>
+  } @else if (!users().length) {
+    <div class="state"><h2>ไม่พบผู้ใช้งาน</h2></div>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>ชื่อผู้ใช้</th>
+          <th>ชื่อ-นามสกุล</th>
+          <th>บทบาท</th>
+          <th>สถานะ</th>
+          <th class="actions-heading">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of users(); track user.id) {
+          <tr>
+            <td>{{ user.username }}</td>
+            <td>
+              <b>{{ user.fullName }}</b>
+            </td>
+            <td>{{ roleLabel(user.role) }}</td>
+            <td>
+              <span class="status" [class.inactive]="user.status !== 'ACTIVE'">
+                {{ statusLabel(user.status) }}
+              </span>
+            </td>
+            <td>
+              @if (canManage(user)) {
+                <div class="user-actions">
+                  <button type="button" class="text-action" (click)="openEditDialog(user)">
+                    แก้ไข
+                  </button>
+                  <button
+                    type="button"
+                    class="text-action delete-action"
+                    [disabled]="user.id === auth.user()?.id"
+                    (click)="requestDelete(user)"
+                  >
+                    ลบ
+                  </button>
+                  <button
+                    type="button"
+                    class="status-switch"
+                    role="switch"
+                    [class.on]="user.status === 'ACTIVE'"
+                    [attr.aria-checked]="user.status === 'ACTIVE'"
+                    [attr.aria-label]="
+                      (user.status === 'ACTIVE' ? 'ปิดใช้งาน ' : 'เปิดใช้งาน ') + user.fullName
+                    "
+                    [disabled]="user.id === auth.user()?.id"
+                    (click)="requestStatusChange(user)"
+                  >
+                    <span></span>
+                  </button>
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

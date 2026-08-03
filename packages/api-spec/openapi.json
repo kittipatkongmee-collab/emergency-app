@@ -1,6 +1,30 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/auth/development-login": {
+      "post": {
+        "operationId": "CitizenAuthController_development",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevelopmentLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Citizen Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/facebook": {
       "post": {
         "operationId": "CitizenAuthController_facebook",
@@ -215,7 +239,16 @@
     "/api/v1/incidents": {
       "post": {
         "operationId": "CitizenIncidentsController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -245,6 +278,34 @@
       "get": {
         "operationId": "CitizenIncidentsController_mine",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Citizen Incidents"
+        ]
+      }
+    },
+    "/api/v1/incidents/me/{id}": {
+      "get": {
+        "operationId": "CitizenIncidentsController_detailByOwnedRoute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -329,6 +390,28 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                },
+                "required": [
+                  "files"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -391,9 +474,9 @@
         ]
       }
     },
-    "/api/v1/admin/incidents/{id}/status": {
+    "/api/v1/admin/incidents/{id}/accept": {
       "patch": {
-        "operationId": "AdminIncidentsController_status",
+        "operationId": "AdminIncidentsController_accept",
         "parameters": [
           {
             "name": "id",
@@ -404,16 +487,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StatusDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": ""
@@ -429,9 +502,9 @@
         ]
       }
     },
-    "/api/v1/admin/incidents/{id}/assignment": {
+    "/api/v1/admin/incidents/{id}/complete": {
       "patch": {
-        "operationId": "AdminIncidentsController_assignment",
+        "operationId": "AdminIncidentsController_complete",
         "parameters": [
           {
             "name": "id",
@@ -442,16 +515,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignmentDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": ""
@@ -566,6 +629,34 @@
       "get": {
         "operationId": "AdminOperationsController_byType",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Operations"
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard/incidents-by-date": {
+      "get": {
+        "operationId": "AdminOperationsController_byDate",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -704,6 +795,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserStatusDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -760,16 +861,7 @@
     "/api/v1/admin/audit-logs": {
       "get": {
         "operationId": "AdminOperationsController_audit",
-        "parameters": [
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -840,6 +932,25 @@
         ]
       }
     },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/api/v1/notifications/{id}/read": {
       "patch": {
         "operationId": "NotificationsController_read",
@@ -887,6 +998,34 @@
         ]
       }
     },
+    "/api/v1/notifications/{id}": {
+      "delete": {
+        "operationId": "NotificationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/api/v1/devices/register": {
       "post": {
         "operationId": "NotificationsController_device",
@@ -903,6 +1042,34 @@
         },
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/devices/{id}": {
+      "delete": {
+        "operationId": "NotificationsController_removeDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -962,6 +1129,10 @@
       }
     },
     "schemas": {
+      "DevelopmentLoginDto": {
+        "type": "object",
+        "properties": {}
+      },
       "FacebookLoginDto": {
         "type": "object",
         "properties": {}
@@ -982,14 +1153,6 @@
         "type": "object",
         "properties": {}
       },
-      "StatusDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "AssignmentDto": {
-        "type": "object",
-        "properties": {}
-      },
       "NoteDto": {
         "type": "object",
         "properties": {}
@@ -999,6 +1162,10 @@
         "properties": {}
       },
       "UpdateAdminUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateUserStatusDto": {
         "type": "object",
         "properties": {}
       },

@@ -16,10 +16,13 @@ export type AuthPrincipal = {
   kind: 'admin' | 'citizen';
   role?: AdminRole;
   username?: string;
+  tokenType?: 'access';
 };
 export type AuthenticatedRequest = Request & { user: AuthPrincipal };
 export const Public = () => SetMetadata('public', true);
 export const Roles = (...roles: AdminRole[]) => SetMetadata('roles', roles);
+export const PrincipalKinds = (...kinds: Array<'admin' | 'citizen'>) =>
+  SetMetadata('principalKinds', kinds);
 
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -47,6 +50,9 @@ export class AccessGuard implements CanActivate {
           secret: process.env.JWT_ACCESS_SECRET,
         },
       );
+      if (request.user.tokenType !== 'access') {
+        throw new UnauthorizedException('ประเภทโทเคนไม่ถูกต้อง');
+      }
     } catch {
       throw new UnauthorizedException('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
     }
@@ -54,6 +60,13 @@ export class AccessGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const kinds = this.reflector.getAllAndOverride<Array<'admin' | 'citizen'>>(
+      'principalKinds',
+      [context.getHandler(), context.getClass()],
+    );
+    if (kinds?.length && !kinds.includes(request.user.kind)) {
+      throw new ForbiddenException('ประเภทบัญชีนี้ไม่มีสิทธิ์ดำเนินการ');
+    }
     if (
       roles?.length &&
       (!request.user.role || !roles.includes(request.user.role))
