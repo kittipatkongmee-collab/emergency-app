@@ -27,7 +27,22 @@ pnpm db:seed
 
 ## เปิดระบบ
 
-เปิดแต่ละคำสั่งใน PowerShell คนละหน้าต่าง:
+เปิดระบบทั้งหมดด้วยคำสั่งเดียวจากโฟลเดอร์หลัก:
+
+```powershell
+pnpm start
+```
+
+คำสั่งนี้จะเปิด MySQL, API, เว็บหลังบ้านในเบราว์เซอร์ และแอป Android พร้อมกัน โดยเลือกอุปกรณ์ Android ที่เชื่อมต่ออยู่ หรือเปิด emulator ตัวแรกให้อัตโนมัติ กด `Ctrl+C` เพื่อปิดบริการทั้งหมด
+
+หากต้องการระบุอุปกรณ์เอง ให้ตั้งค่า `MOBILE_DEVICE_ID` หรือระบุ emulator ด้วย `ANDROID_EMULATOR_ID` ก่อนรันคำสั่ง เช่น:
+
+```powershell
+$env:ANDROID_EMULATOR_ID='Pixel_9'
+pnpm start
+```
+
+หากต้องการเปิดแยกแต่ละส่วน ให้ใช้ PowerShell คนละหน้าต่าง:
 
 ```powershell
 pnpm db:start
@@ -40,10 +55,11 @@ pnpm mobile:run:android
 - Swagger: `http://localhost:3000/docs`
 - Angular: `http://localhost:4200`
 - Prisma Studio: รัน `pnpm db:studio` แล้วเปิด `http://localhost:5555`
-- Flutter Android ใช้ `10.0.2.2` เพื่อเข้าถึง API บนเครื่อง Windows
+- Flutter Android ใช้ `adb reverse` เพื่อเข้าถึง API ผ่าน `127.0.0.1` และใช้ `10.0.2.2` เป็น fallback สำหรับ emulator
 
 คำสั่งลัด:
 
+- `pnpm start` หรือ `pnpm start:all` เปิด MySQL, API, Angular และ Flutter Android พร้อมกัน
 - `pnpm start:services` เปิด MySQL, API และ Angular
 - `pnpm start:backend` เปิด MySQL และ API
 - `pnpm start:web` เปิด Angular
@@ -99,6 +115,7 @@ pnpm mobile:test
 - Seed: `ADMIN_SEED_USERNAME`, `ADMIN_SEED_PASSWORD`, `ADMIN_SEED_FULL_NAME`
 - Storage: `STORAGE_DRIVER`, `STORAGE_LOCAL_PATH` หรือค่า `S3_*`
 - Facebook: `FACEBOOK_LOGIN_ENABLED`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`
+- LINE Login: `LINE_LOGIN_ENABLED`, `LINE_CHANNEL_ID`, `LINE_EMAIL_SCOPE_ENABLED`
 - Firebase: `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY`
 - Flutter: `APP_ENV`, `API_BASE_URL`, `SOCKET_URL`, `MAPS_ENABLED`, `FCM_ENABLED`, `DEV_AUTH_BYPASS`
 
@@ -107,6 +124,7 @@ Production ต้องปิด `DEV_AUTH_BYPASS`, ใช้ secret ใหม�
 ## External services
 
 - Facebook: [docs/facebook-integration-pending.md](docs/facebook-integration-pending.md)
+- LINE Login: [docs/line-login-setup.md](docs/line-login-setup.md)
 - Maps: [docs/map-setup.md](docs/map-setup.md)
 - Firebase/FCM: [docs/firebase-setup.md](docs/firebase-setup.md)
 - Deployment: [docs/deployment.md](docs/deployment.md)

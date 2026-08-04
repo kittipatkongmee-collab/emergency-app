@@ -47,6 +47,8 @@ const schema = z
     FACEBOOK_LOGIN_ENABLED: z.string().default('false'),
     FACEBOOK_APP_ID: z.string().optional(),
     FACEBOOK_APP_SECRET: z.string().optional(),
+    LINE_LOGIN_ENABLED: z.string().default('false'),
+    LINE_CHANNEL_ID: z.string().optional(),
     FCM_ENABLED: z.string().default('false'),
     FCM_PROJECT_ID: z.string().optional(),
     FCM_CLIENT_EMAIL: z.string().optional(),
@@ -69,6 +71,16 @@ const schema = z
         code: 'custom',
         path: ['FACEBOOK_LOGIN_ENABLED'],
         message: 'เปิด Facebook Login ได้เมื่อกำหนด App ID และ App Secret แล้ว',
+      });
+    }
+    if (
+      env.LINE_LOGIN_ENABLED === 'true' &&
+      (!env.LINE_CHANNEL_ID || !/^\d+$/.test(env.LINE_CHANNEL_ID))
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['LINE_LOGIN_ENABLED'],
+        message: 'เปิด LINE Login ได้เมื่อกำหนด LINE Channel ID เป็นตัวเลขแล้ว',
       });
     }
     if (

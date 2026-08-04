@@ -1,84 +1,101 @@
 <h1 class="page-title">แผนที่เหตุการณ์</h1>
-<p class="muted map-intro">แสดงหมุดของรายการแจ้งเหตุที่ยังอยู่ระหว่างดำเนินการทั้งหมด</p>
 
-<section class="map-layout">
-  <div class="map-panel">
-    @if (loading()) {
-      <div class="card state map-state"><div class="spinner"></div></div>
-    } @else if (error()) {
-      <div class="card state map-state">
-        <p>{{ error() }}</p>
-        <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
-      </div>
-    } @else {
-      @if (selectedIncident(); as selected) {
+<section class="aggregate-section">
+  <header class="section-heading">
+    <div>
+      <h2>แผนที่รวม</h2>
+    </div>
+    <span class="active-count">{{ activeIncidents().length }} จุด</span>
+  </header>
+
+  @if (loading()) {
+    <div class="card state aggregate-map-state"><div class="spinner"></div></div>
+  } @else if (error()) {
+    <div class="card state aggregate-map-state">
+      <p>{{ error() }}</p>
+      <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+    </div>
+  } @else {
+    <div
+      #mapContainer
+      class="aggregate-map-canvas"
+      role="application"
+      aria-label="แผนที่รวมหมุดของเหตุการณ์ที่ยังดำเนินการอยู่ทั้งหมด สามารถลาก ซูม และเลื่อนแผนที่ได้"
+    >
+      @if (!activeIncidents().length) {
+        <p class="no-active-incidents">ไม่มีเหตุที่อยู่ระหว่างดำเนินการ</p>
+      }
+    </div>
+  }
+</section>
+
+<section class="individual-section">
+  <header class="section-heading">
+    <div>
+      <h2>แผนที่แต่ละรายการ</h2>
+    </div>
+  </header>
+
+  <div class="map-layout">
+    <div class="map-panel">
+      @if (loading()) {
+        <div class="card state item-map-state"><div class="spinner"></div></div>
+      } @else if (error()) {
+        <div class="card state item-map-state">
+          <p>{{ error() }}</p>
+          <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+        </div>
+      } @else if (selectedIncident(); as selected) {
         <div class="map-caption card">
           <div>
             <b>{{ selected.caseCode }}</b>
             <span>{{ selected.address }}</span>
           </div>
           <div class="selected-summary">
-            <span class="status" [class.completed]="selected.status === 'COMPLETED'">
+            <span class="status" [attr.data-status]="selected.status">
               {{ statusLabel(selected.status) }}
             </span>
             <a [routerLink]="['/incidents', selected.id]">เปิดรายละเอียด ›</a>
           </div>
         </div>
-      }
-      <div class="map-canvas">
-        <iframe
-          title="แผนที่รวมเหตุการณ์"
-          [src]="mapUrl()"
-          loading="lazy"
-          referrerpolicy="no-referrer"
-        ></iframe>
-        <div class="map-markers" aria-label="หมุดรายการแจ้งเหตุ">
-          @for (marker of markers(); track marker.incident.id) {
-            <button
-              type="button"
-              class="map-marker"
-              [class.selected]="selectedId() === marker.incident.id"
-              [style.left.%]="marker.left"
-              [style.top.%]="marker.top"
-              [attr.aria-label]="'เลือกเหตุ ' + marker.incident.caseCode"
-              (click)="select(marker.incident)"
-            >
-              <span aria-hidden="true"></span>
-              <b>{{ marker.incident.caseCode }}</b>
-            </button>
-          }
-        </div>
-        @if (!activeIncidents().length) {
-          <p class="no-active-incidents">ไม่มีเหตุที่อยู่ระหว่างดำเนินการ</p>
-        }
-      </div>
-    }
-  </div>
 
-  <div class="card locations">
-    <h2>รายการจุดเกิดเหตุ</h2>
-    @if (loading()) {
-      <div class="state"><div class="spinner"></div></div>
-    } @else if (!incidents().length) {
-      <div class="state"><p>ยังไม่มีจุดเกิดเหตุ</p></div>
-    }
-    @for (incident of incidents(); track incident.id) {
-      <article
-        [class.selected]="selectedId() === incident.id"
-        [class.completed]="incident.status === 'COMPLETED'"
-      >
-        <button type="button" (click)="select(incident)">
-          <span class="location-heading">
-            <b>{{ incident.caseCode }}</b>
-            <small class="status" [class.completed]="incident.status === 'COMPLETED'">
-              {{ statusLabel(incident.status) }}
-            </small>
-          </span>
-          <span>{{ incident.address }}</span>
-          <small>{{ incident.latitude }}, {{ incident.longitude }}</small>
-        </button>
-        <a [routerLink]="['/incidents', incident.id]">เปิดรายละเอียด ›</a>
-      </article>
-    }
+        @if (hasValidCoordinates(selected)) {
+          <div class="card selected-map-card">
+            <app-incident-location-map [incident]="selected" />
+          </div>
+        } @else {
+          <div class="card state item-map-state">รายการนี้ไม่มีพิกัดที่ใช้งานได้</div>
+        }
+      } @else {
+        <div class="card state item-map-state">ยังไม่มีรายการจุดเกิดเหตุ</div>
+      }
+    </div>
+
+    <div class="card locations">
+      <h2>รายการจุดเกิดเหตุ</h2>
+      @if (loading()) {
+        <div class="state"><div class="spinner"></div></div>
+      } @else if (!incidents().length) {
+        <div class="state"><p>ยังไม่มีจุดเกิดเหตุ</p></div>
+      }
+      @for (incident of incidents(); track incident.id) {
+        <article
+          [class.selected]="selectedId() === incident.id"
+          [class.completed]="incident.status === 'COMPLETED'"
+        >
+          <button type="button" (click)="select(incident)">
+            <span class="location-heading">
+              <b>{{ incident.caseCode }}</b>
+              <small class="status" [attr.data-status]="incident.status">
+                {{ statusLabel(incident.status) }}
+              </small>
+            </span>
+            <span>{{ incident.address }}</span>
+            <small>{{ incident.latitude }}, {{ incident.longitude }}</small>
+          </button>
+          <a [routerLink]="['/incidents', incident.id]">เปิดรายละเอียด ›</a>
+        </article>
+      }
+    </div>
   </div>
 </section>

@@ -15,6 +15,20 @@
   background: #fff7f8;
 }
 
+.notification-list article.clickable {
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.notification-list article.clickable:hover,
+.notification-list article.clickable:focus-visible {
+  outline: none;
+  background: #fff1f3;
+  box-shadow: inset 4px 0 0 var(--primary);
+}
+
 .notice-icon {
   display: grid;
   place-items: center;

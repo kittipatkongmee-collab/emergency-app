@@ -4,7 +4,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { AccessGuard } from '../../common/auth';
 import { AdminAuthController, CitizenAuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { DevelopmentAuthProvider, FacebookAuthProvider } from './auth-provider';
+import {
+  DevelopmentAuthProvider,
+  FacebookAuthProvider,
+  LineAuthProvider,
+} from './auth-provider';
 
 @Module({
   imports: [JwtModule.register({})],
@@ -13,6 +17,7 @@ import { DevelopmentAuthProvider, FacebookAuthProvider } from './auth-provider';
     AuthService,
     DevelopmentAuthProvider,
     FacebookAuthProvider,
+    LineAuthProvider,
     { provide: APP_GUARD, useClass: AccessGuard },
   ],
   exports: [AuthService, JwtModule],

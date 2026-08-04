@@ -5,7 +5,11 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>th</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>th</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>แจ้งเหตุ กองบินตำรวจ</string>
 	<key>CFBundleExecutable</key>

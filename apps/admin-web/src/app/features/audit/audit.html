@@ -22,7 +22,7 @@
       <tbody>
         @for (audit of items(); track audit.id) {
           <tr>
-            <td>{{ audit.createdAt | date: 'd MMM y HH:mm' : '' : 'th' }}</td>
+            <td>{{ audit.createdAt | thaiBuddhistDate }}</td>
             <td>{{ audit.adminUser?.fullName || 'ระบบ' }}</td>
             <td>
               <b>{{ actionLabel(audit.action) }}</b>

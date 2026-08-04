@@ -4,6 +4,8 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "start": "node scripts/start-development.mjs",
+    "start:all": "pnpm start",
     "start:services": "pnpm db:start && pnpm dev",
     "start:backend": "pnpm db:start && pnpm dev:api",
     "start:web": "pnpm dev:web",
@@ -13,6 +15,7 @@
     "stop:docker": "node scripts/run-with-env.mjs docker compose stop",
     "dev:api": "node scripts/run-with-env.mjs pnpm --filter @police/api start:dev",
     "dev:web": "pnpm --filter @police/admin-web start",
+    "dev:web:open": "pnpm --filter @police/admin-web exec ng serve --open",
     "dev": "node scripts/run-with-env.mjs pnpm --parallel --filter @police/api --filter @police/admin-web run start:dev",
     "build": "pnpm -r --if-present run build",
     "lint": "pnpm -r --if-present run lint",
@@ -39,9 +42,10 @@
     "db:verify:mysql": "node scripts/run-with-env.mjs pnpm --filter @police/api verify:mysql",
     "mobile:get": "cd apps/mobile && flutter pub get",
     "mobile:run": "cd apps/mobile && flutter run --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true",
-    "mobile:run:android": "cd apps/mobile && flutter run -d emulator-5554 --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1 --dart-define=SOCKET_URL=http://10.0.2.2:3000",
+    "mobile:run:android": "node scripts/run-with-env.mjs node scripts/run-mobile-android.mjs",
     "mobile:run:web": "cd apps/mobile && flutter run -d chrome --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true --dart-define=API_BASE_URL=http://localhost:3000/api/v1 --dart-define=SOCKET_URL=http://localhost:3000",
     "mobile:analyze": "cd apps/mobile && flutter analyze",
-    "mobile:test": "cd apps/mobile && flutter test"
+    "mobile:test": "cd apps/mobile && flutter test",
+    "test:launcher": "node --test scripts/run-mobile-android.test.mjs scripts/start-development.test.mjs"
   }
 }

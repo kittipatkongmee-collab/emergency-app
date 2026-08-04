@@ -26,6 +26,10 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "css",
+            "allowedCommonJsDependencies": [
+              "leaflet",
+              "flatpickr/dist/l10n/th.js"
+            ],
             "assets": [
               {
                 "glob": "**/*",

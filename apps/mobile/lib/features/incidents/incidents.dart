@@ -18,6 +18,16 @@ String incidentTypeLabel(String type) => switch (type) {
   _ => type,
 };
 
+String incidentStatusLabel(String status) => switch (status) {
+  'RECEIVED' => 'รอดำเนินการ',
+  'FORWARDED' => 'ส่งต่อเจ้าหน้าที่',
+  'INSPECTING' => 'กำลังเข้าตรวจสอบ',
+  'IN_PROGRESS' => 'กำลังดำเนินการ',
+  'COMPLETED' => 'ภารกิจสำเร็จ',
+  'CANCELLED' => 'ยกเลิก',
+  _ => 'ไม่ทราบสถานะ',
+};
+
 class SelectedIncidentTypeCard extends StatelessWidget {
   const SelectedIncidentTypeCard({required this.type, super.key});
 
@@ -94,52 +104,209 @@ class SelectedIncidentTypeCard extends StatelessWidget {
   }
 }
 
-Future<String?> showIncidentTypeDialog(BuildContext context) =>
-    showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('เลือกประเภทการแจ้งเหตุ'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppTheme.primaryLight,
-                child: Icon(Icons.flight_outlined, color: AppTheme.primary),
-              ),
-              title: const Text(
-                'อากาศยานประสบภัย',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(dialogContext).pop('AIRCRAFT_ACCIDENT'),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppTheme.primaryLight,
-                child: Icon(
-                  Icons.health_and_safety_outlined,
-                  color: AppTheme.primary,
-                ),
-              ),
-              title: const Text(
-                'ช่วยเหลือบรรเทาสาธารณภัย',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(dialogContext).pop('DISASTER_RELIEF'),
+Future<String?> showIncidentTypeDialog(
+  BuildContext context,
+) => showDialog<String>(
+  context: context,
+  barrierColor: Colors.black.withValues(alpha: .62),
+  builder: (dialogContext) => Dialog(
+    insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+    backgroundColor: Colors.transparent,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: Colors.white.withValues(alpha: .8)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x4D290005),
+              blurRadius: 38,
+              offset: Offset(0, 18),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('ยกเลิก'),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 23, 24, 20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4A0007), Color(0xFF97000F)],
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Color(0x26FFFFFF),
+                        borderRadius: BorderRadius.all(Radius.circular(15)),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(11),
+                        child: Icon(
+                          Icons.emergency_share_outlined,
+                          color: Colors.white,
+                          size: 27,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'แจ้งเหตุใหม่',
+                            style: TextStyle(
+                              color: Color(0xFFFFD7DC),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'เลือกประเภทการแจ้งเหตุ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+                child: Column(
+                  children: [
+                    _IncidentTypeOption(
+                      icon: Icons.flight_rounded,
+                      title: 'อากาศยานประสบภัย',
+                      accentColor: AppTheme.primary,
+                      onTap: () =>
+                          Navigator.of(dialogContext).pop('AIRCRAFT_ACCIDENT'),
+                    ),
+                    const SizedBox(height: 12),
+                    _IncidentTypeOption(
+                      icon: Icons.health_and_safety_rounded,
+                      title: 'ช่วยเหลือบรรเทาสาธารณภัย',
+                      accentColor: const Color(0xFF9A5A00),
+                      onTap: () =>
+                          Navigator.of(dialogContext).pop('DISASTER_RELIEF'),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  icon: const Icon(Icons.close_rounded, size: 19),
+                  label: const Text('ยกเลิก'),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    );
+    ),
+  ),
+);
+
+class _IncidentTypeOption extends StatelessWidget {
+  const _IncidentTypeOption({
+    required this.icon,
+    required this.title,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: title,
+    child: Material(
+      color: accentColor.withValues(alpha: .045),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: accentColor.withValues(alpha: .18)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: .11),
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Icon(icon, color: accentColor, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: AppTheme.primaryDark,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: .12),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: accentColor,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 Future<void> openIncidentReport(BuildContext context, WidgetRef ref) async {
   final type = await showIncidentTypeDialog(context);
@@ -266,10 +433,15 @@ class IncidentRepository {
     if (d.images.isNotEmpty) {
       final form = FormData();
       for (final image in d.images) {
+        final contentType = incidentImageMediaType(image.name);
         form.files.add(
           MapEntry(
             'files',
-            await MultipartFile.fromFile(image.path, filename: image.name),
+            await MultipartFile.fromFile(
+              image.path,
+              filename: image.name,
+              contentType: contentType,
+            ),
           ),
         );
       }
@@ -278,6 +450,9 @@ class IncidentRepository {
     return detail(item.id);
   }
 }
+
+DioMediaType? incidentImageMediaType(String filename) =>
+    MultipartFile.lookupMediaType(filename);
 
 final incidentRepositoryProvider = Provider(
   (ref) => IncidentRepository(ref.watch(apiClientProvider)),
@@ -590,36 +765,53 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 ] else ...[
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final columns = draft.images.length == 1 ? 1 : 2;
-                      final tileWidth =
-                          (constraints.maxWidth - ((columns - 1) * 8)) /
-                          columns;
-                      final tileHeight = columns == 1 ? 210.0 : 132.0;
-                      return Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (
-                            var index = 0;
-                            index < draft.images.length;
-                            index++
-                          )
-                            SizedBox(
+                      final tileWidth = constraints.maxWidth > 420
+                          ? 285.0
+                          : constraints.maxWidth * .82;
+                      return SizedBox(
+                        height: 205,
+                        child: ListView.separated(
+                          key: const PageStorageKey('incident-photo-carousel'),
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: draft.images.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, index) => Semantics(
+                            label:
+                                'รูปเหตุการณ์ที่ ${index + 1} จาก ${draft.images.length}',
+                            image: true,
+                            child: SizedBox(
                               width: tileWidth,
-                              height: tileHeight,
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(15),
                                     child: Image.file(
                                       File(draft.images[index].path),
                                       fit: BoxFit.cover,
                                     ),
                                   ),
+                                  const DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(15),
+                                      ),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          Color(0x99000000),
+                                        ],
+                                        stops: [.55, 1],
+                                      ),
+                                    ),
+                                  ),
                                   Positioned(
-                                    right: 7,
-                                    top: 7,
+                                    right: 9,
+                                    top: 9,
                                     child: IconButton.filled(
                                       tooltip: 'ลบรูปที่ ${index + 1}',
                                       onPressed: () => ref
@@ -631,51 +823,98 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                             ),
                                           ),
                                       style: IconButton.styleFrom(
-                                        backgroundColor: Colors.black54,
+                                        backgroundColor: const Color(
+                                          0xB33B0006,
+                                        ),
                                         foregroundColor: Colors.white,
-                                        minimumSize: const Size(36, 36),
+                                        minimumSize: const Size(38, 38),
                                         padding: EdgeInsets.zero,
                                       ),
-                                      icon: const Icon(Icons.close, size: 20),
+                                      icon: const Icon(
+                                        Icons.close_rounded,
+                                        size: 20,
+                                      ),
                                     ),
                                   ),
                                   Positioned(
-                                    left: 8,
-                                    bottom: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 9,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'รูปที่ ${index + 1}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
+                                    left: 12,
+                                    right: 12,
+                                    bottom: 11,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(
+                                              alpha: .92,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'รูปที่ ${index + 1}',
+                                            style: const TextStyle(
+                                              color: AppTheme.primaryDark,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        const Spacer(),
+                                        Text(
+                                          '${index + 1}/${draft.images.length}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                        ],
+                          ),
+                        ),
                       );
                     },
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    'เพิ่มแล้ว ${draft.images.length} จาก 5 รูป',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'เพิ่มแล้ว ${draft.images.length} จาก 5 รูป',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.swipe_rounded,
+                            size: 17,
+                            color: AppTheme.primary,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'ปัดซ้าย–ขวา',
+                            style: TextStyle(
+                              color: AppTheme.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -807,20 +1046,41 @@ final deviceLocationProvider = Provider<DeviceLocationAdapter>(
 );
 
 class _LocationScreenState extends ConsumerState<LocationScreen> {
+  static const fallbackMapCenter = LatLng(13.7563, 100.5018);
+
   late LatLng selected;
+  GoogleMapController? mapController;
+  Offset simulatedMarkerFraction = const Offset(.5, .5);
   bool locating = false;
+  bool resolvedDevicePosition = false;
+
   @override
   void initState() {
     super.initState();
     final d = ref.read(reportDraftProvider);
-    selected = LatLng(d.latitude, d.longitude);
+    selected = d.locationSelected
+        ? LatLng(d.latitude, d.longitude)
+        : fallbackMapCenter;
+    if (!d.locationSelected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => current());
+    }
   }
 
   Future<void> current() async {
+    if (locating) return;
     setState(() => locating = true);
     try {
       final position = await ref.read(deviceLocationProvider).currentPosition();
-      setState(() => selected = LatLng(position.latitude, position.longitude));
+      if (!mounted) return;
+      final nextPosition = LatLng(position.latitude, position.longitude);
+      setState(() {
+        selected = nextPosition;
+        simulatedMarkerFraction = const Offset(.5, .5);
+        resolvedDevicePosition = true;
+      });
+      await mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(nextPosition, 16),
+      );
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -829,6 +1089,29 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
     } finally {
       if (mounted) setState(() => locating = false);
     }
+  }
+
+  @override
+  void dispose() {
+    mapController?.dispose();
+    super.dispose();
+  }
+
+  void updateSimulatedLocation(Offset localPosition, Size mapSize) {
+    if (mapSize.width <= 0 || mapSize.height <= 0) return;
+    final nextFraction = Offset(
+      (localPosition.dx / mapSize.width).clamp(.08, .92).toDouble(),
+      (localPosition.dy / mapSize.height).clamp(.1, .9).toDouble(),
+    );
+    final latitudeDelta = (simulatedMarkerFraction.dy - nextFraction.dy) * .02;
+    final longitudeDelta = (nextFraction.dx - simulatedMarkerFraction.dx) * .02;
+    setState(() {
+      selected = LatLng(
+        (selected.latitude + latitudeDelta).clamp(-90, 90).toDouble(),
+        (selected.longitude + longitudeDelta).clamp(-180, 180).toDouble(),
+      );
+      simulatedMarkerFraction = nextFraction;
+    });
   }
 
   void confirm() {
@@ -867,6 +1150,14 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                             target: selected,
                             zoom: 15,
                           ),
+                          onMapCreated: (controller) {
+                            mapController = controller;
+                            if (resolvedDevicePosition) {
+                              controller.moveCamera(
+                                CameraUpdate.newLatLngZoom(selected, 16),
+                              );
+                            }
+                          },
                           markers: {
                             Marker(
                               markerId: const MarkerId('incident'),
@@ -878,38 +1169,86 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                           onTap: (v) => setState(() => selected = v),
                           myLocationButtonEnabled: false,
                         )
-                      : ColoredBox(
-                          color: const Color(0xFFF0F3F5),
-                          child: Stack(
-                            children: [
-                              CustomPaint(
-                                size: Size.infinite,
-                                painter: _MapGridPainter(),
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final mapSize = constraints.biggest;
+                            final markerPosition = Offset(
+                              simulatedMarkerFraction.dx * mapSize.width,
+                              simulatedMarkerFraction.dy * mapSize.height,
+                            );
+                            return GestureDetector(
+                              key: const Key('interactive-simulated-map'),
+                              behavior: HitTestBehavior.opaque,
+                              onTapDown: (details) => updateSimulatedLocation(
+                                details.localPosition,
+                                mapSize,
                               ),
-                              Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                              onPanStart: (details) => updateSimulatedLocation(
+                                details.localPosition,
+                                mapSize,
+                              ),
+                              onPanUpdate: (details) => updateSimulatedLocation(
+                                details.localPosition,
+                                mapSize,
+                              ),
+                              child: ColoredBox(
+                                color: const Color(0xFFF0F3F5),
+                                child: Stack(
                                   children: [
-                                    const Icon(
-                                      Icons.location_pin,
-                                      color: AppTheme.primary,
-                                      size: 76,
+                                    CustomPaint(
+                                      size: Size.infinite,
+                                      painter: _MapGridPainter(),
                                     ),
-                                    Text(
-                                      '${selected.latitude.toStringAsFixed(6)}, ${selected.longitude.toStringAsFixed(6)}',
+                                    Positioned(
+                                      left: markerPosition.dx - 38,
+                                      top: markerPosition.dy - 70,
+                                      child: const IgnorePointer(
+                                        child: Icon(
+                                          Icons.location_pin,
+                                          color: AppTheme.primary,
+                                          size: 76,
+                                        ),
+                                      ),
                                     ),
-                                    const Text(
-                                      'แผนที่จำลองสำหรับสภาพแวดล้อมพัฒนา',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: AppTheme.textSecondary,
+                                    Positioned(
+                                      left: 12,
+                                      top: 12,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: .9,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          child: Text(
+                                            '${selected.latitude.toStringAsFixed(6)}, ${selected.longitude.toStringAsFixed(6)}',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const Positioned(
+                                      right: 12,
+                                      bottom: 12,
+                                      child: Text(
+                                        'แตะหรือลากหมุดเพื่อเลือกตำแหน่ง',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.textSecondary,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                 ),
                 Positioned(
@@ -946,12 +1285,20 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                         ),
                       ),
                       SizedBox(width: 12),
-                      Text(
-                        'ตำแหน่งที่เลือก',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.primaryDark,
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'ตำแหน่งที่เลือก',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.primaryDark,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1336,7 +1683,7 @@ class _TrackingBody extends StatelessWidget {
   final Incident incident;
   static const steps = ['RECEIVED', 'IN_PROGRESS', 'COMPLETED'];
   static const labels = {
-    'RECEIVED': 'รับแจ้งเหตุแล้ว',
+    'RECEIVED': 'รอดำเนินการ',
     'FORWARDED': 'ส่งต่อเจ้าหน้าที่',
     'INSPECTING': 'กำลังเข้าตรวจสอบ',
     'IN_PROGRESS': 'กำลังดำเนินการ',

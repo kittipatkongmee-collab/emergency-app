@@ -48,27 +48,30 @@
     </div>
   }
   @for (notice of items(); track notice.id) {
-    <article [class.unread]="!notice.isRead">
+    <article
+      [class.unread]="!notice.isRead"
+      [class.clickable]="!!notice.incidentId"
+      [attr.role]="notice.incidentId ? 'link' : null"
+      [attr.tabindex]="notice.incidentId ? 0 : null"
+      (click)="openIncident(notice)"
+      (keydown.enter)="openIncident(notice)"
+    >
       <span class="notice-icon" aria-hidden="true">🔔</span>
       <div class="notice-content">
-        @if (notice.incidentId) {
-          <a [routerLink]="['/incidents', notice.incidentId]"
-            ><b>{{ notice.title }}</b></a
-          >
-        } @else {
-          <b>{{ notice.title }}</b>
-        }
+        <b>{{ notice.title }}</b>
         <p>{{ notice.message }}</p>
-        <time>{{ notice.createdAt | date: 'd MMM y HH:mm' : '' : 'th' }}</time>
+        <time>{{ notice.createdAt | thaiBuddhistDate }}</time>
         <div class="notice-actions">
           @if (!notice.isRead) {
-            <button class="btn-outline" (click)="read(notice)">ทำเครื่องหมายว่าอ่านแล้ว</button>
+            <button class="btn-outline" (click)="$event.stopPropagation(); read(notice)">
+              ทำเครื่องหมายว่าอ่านแล้ว
+            </button>
           }
           <button
             type="button"
             class="delete-notice"
             [attr.aria-label]="'ลบการแจ้งเตือน ' + notice.title"
-            (click)="requestRemove(notice)"
+            (click)="$event.stopPropagation(); requestRemove(notice)"
           >
             <span aria-hidden="true">🗑</span>
           </button>

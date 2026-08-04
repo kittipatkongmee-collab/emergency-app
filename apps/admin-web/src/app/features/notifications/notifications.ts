@@ -1,13 +1,13 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { NotificationItem, Page } from '../../core/models';
+import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
 
 @Component({
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [ThaiBuddhistDatePipe],
   templateUrl: './notifications.html',
   styleUrl: './notifications.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,7 +20,10 @@ export class NotificationsComponent implements OnInit {
   readonly pendingDelete = signal<NotificationItem | null>(null);
   readonly deleteError = signal('');
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly router: Router,
+  ) {}
 
   ngOnInit() {
     this.load();
@@ -43,6 +46,24 @@ export class NotificationsComponent implements OnInit {
 
   read(notice: NotificationItem) {
     this.api.patch(`notifications/${notice.id}/read`, {}).subscribe({ next: () => this.load() });
+  }
+
+  openIncident(notice: NotificationItem) {
+    if (!notice.incidentId) return;
+
+    const navigate = () => {
+      void this.router.navigate(['/incidents', notice.incidentId]);
+    };
+
+    if (notice.isRead) {
+      navigate();
+      return;
+    }
+
+    this.api.patch(`notifications/${notice.id}/read`, {}).subscribe({
+      next: navigate,
+      error: navigate,
+    });
   }
 
   requestRemove(notice: NotificationItem) {

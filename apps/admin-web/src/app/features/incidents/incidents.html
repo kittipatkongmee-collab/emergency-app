@@ -1,17 +1,27 @@
 <section class="heading">
-  <p class="eyebrow">Incident management</p>
   <h1 class="page-title">รายการแจ้งเหตุ</h1>
-  <p class="muted">ค้นหา กรอง และติดตามเหตุการณ์ทั้งหมด</p>
 </section>
 
 <form class="filters card" [formGroup]="filters" (ngSubmit)="load()">
   <div class="field date-field">
     <label for="incident-date-from">ตั้งแต่วันที่</label>
-    <input id="incident-date-from" type="date" formControlName="dateFrom" />
+    <input
+      id="incident-date-from"
+      type="text"
+      formControlName="dateFrom"
+      appBuddhistDatepicker
+      placeholder="วว/ดด/ปปปป (พ.ศ.)"
+    />
   </div>
   <div class="field date-field">
     <label for="incident-date-to">ถึงวันที่</label>
-    <input id="incident-date-to" type="date" formControlName="dateTo" />
+    <input
+      id="incident-date-to"
+      type="text"
+      formControlName="dateTo"
+      appBuddhistDatepicker
+      placeholder="วว/ดด/ปปปป (พ.ศ.)"
+    />
   </div>
   <div class="field keyword-field">
     <label for="incident-keyword">ค้นหา</label>
@@ -24,11 +34,33 @@
   <button class="btn-primary search-button" type="submit">ค้นหา</button>
   <div class="field type-field">
     <label for="incident-type">ประเภท</label>
-    <select id="incident-type" formControlName="type">
-      <option value="">ทุกประเภท</option>
-      <option value="AIRCRAFT_ACCIDENT">อากาศยานประสบภัย</option>
-      <option value="DISASTER_RELIEF">ช่วยเหลือบรรเทาสาธารณภัย</option>
-    </select>
+    <ng-select
+      id="incident-type"
+      class="admin-select"
+      formControlName="type"
+      [items]="typeOptions"
+      bindLabel="label"
+      bindValue="value"
+      labelForId="incident-type-input"
+      [clearable]="false"
+      [searchable]="false"
+      notFoundText="ไม่พบประเภท"
+    />
+  </div>
+  <div class="field status-field">
+    <label for="incident-status">สถานะ</label>
+    <ng-select
+      id="incident-status"
+      class="admin-select"
+      formControlName="status"
+      [items]="statusOptions"
+      bindLabel="label"
+      bindValue="value"
+      labelForId="incident-status-input"
+      [clearable]="false"
+      [searchable]="false"
+      notFoundText="ไม่พบสถานะ"
+    />
   </div>
 </form>
 
@@ -69,7 +101,7 @@
               <td>
                 <b>{{ item.caseCode }}</b>
               </td>
-              <td>{{ item.reportedAt | date: 'dd/MM/y HH:mm' : '' : 'th' }}</td>
+              <td>{{ item.reportedAt | thaiBuddhistDate: 'short' }}</td>
               <td>
                 {{ item.reporterName }}<small>{{ item.reporterPhone }}</small>
               </td>
@@ -78,7 +110,9 @@
                 ><small>{{ item.description }}</small>
               </td>
               <td>
-                <span class="status">{{ statusLabel(item.status) }}</span>
+                <span class="status" [attr.data-status]="item.status">{{
+                  statusLabel(item.status)
+                }}</span>
               </td>
               <td>{{ item.province || item.address }}</td>
               <td><a [routerLink]="['/incidents', item.id]" class="open">เปิด ›</a></td>

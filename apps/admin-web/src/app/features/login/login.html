@@ -3,58 +3,101 @@
     <div class="brand-mark">
       <img src="images/police-aviation-logo-transparent.png" alt="โลโก้กองบินตำรวจ" />
     </div>
-    <p class="eyebrow">กองบินตำรวจ</p>
+    <p class="eyebrow"><span>กองบินตำรวจ</span></p>
     <h1 id="brand-title">ระบบบริหารจัดการ<br />แจ้งเหตุและติดตามสถานะ</h1>
-    <p>กองบินตำรวจ</p>
-    <div class="brand-rule"><i></i></div>
+    <div class="brand-rule" aria-hidden="true"><i></i></div>
+    <p class="brand-description">สะดวก รวดเร็ว โปร่งใส เพื่อการบริการที่มีประสิทธิภาพ</p>
   </section>
-  <section class="login-card card">
-    <h2>เข้าสู่ระบบเจ้าหน้าที่</h2>
-    <p class="muted">ระบบบริหารจัดการแจ้งเหตุและติดตามสถานะ</p>
+
+  <section class="login-card card" aria-labelledby="login-title">
+    <header class="login-card-header">
+      <span class="officer-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" />
+        </svg>
+      </span>
+      <h2 id="login-title">เข้าสู่ระบบเจ้าหน้าที่</h2>
+      <p class="muted">ระบบบริหารจัดการแจ้งเหตุและติดตามสถานะ</p>
+      <div class="section-rule" aria-hidden="true"><i></i></div>
+    </header>
+
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
-        <label for="username">ชื่อผู้ใช้</label
-        ><input
-          id="username"
-          formControlName="username"
-          autocomplete="username"
-          placeholder="กรอกชื่อผู้ใช้"
-        />
+        <label for="username">ชื่อผู้ใช้</label>
+        <div class="input-shell">
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" />
+            </svg>
+          </span>
+          <input
+            id="username"
+            formControlName="username"
+            autocomplete="username"
+            placeholder="กรอกชื่อผู้ใช้"
+          />
+        </div>
       </div>
       @if (form.controls.username.touched && form.controls.username.invalid) {
         <small class="error">กรุณากรอกชื่อผู้ใช้</small>
       }
+
       <div class="field password">
-        <label for="password">รหัสผ่าน</label
-        ><input
-          id="password"
-          formControlName="password"
-          autocomplete="current-password"
-          [type]="showPassword() ? 'text' : 'password'"
-          placeholder="กรอกรหัสผ่าน"
-        /><button
-          type="button"
-          (click)="showPassword.set(!showPassword())"
-          [attr.aria-label]="showPassword() ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'"
-        >
-          ◉
-        </button>
+        <label for="password">รหัสผ่าน</label>
+        <div class="input-shell">
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path
+                d="M7 10V7a5 5 0 0 1 10 0v3m-11 0h12a1 1 0 0 1 1 1v9H5v-9a1 1 0 0 1 1-1Zm6 4v3"
+              />
+            </svg>
+          </span>
+          <input
+            id="password"
+            formControlName="password"
+            autocomplete="current-password"
+            [type]="showPassword() ? 'text' : 'password'"
+            placeholder="กรอกรหัสผ่าน"
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'"
+          >
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path
+                d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       @if (form.controls.password.touched && form.controls.password.invalid) {
         <small class="error">กรุณากรอกรหัสผ่านอย่างน้อย 8 ตัวอักษร</small>
       }
-      <label class="remember"
-        ><input type="checkbox" formControlName="rememberMe" /> จดจำการเข้าสู่ระบบ</label
-      >
+
+      <label class="remember">
+        <input type="checkbox" formControlName="rememberMe" />
+        <span>จดจำการเข้าสู่ระบบ</span>
+      </label>
+
+      <button class="btn-primary submit" type="submit" [disabled]="loading()">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M7 10V7a5 5 0 0 1 10 0v3m-11 0h12a1 1 0 0 1 1 1v9H5v-9a1 1 0 0 1 1-1Zm6 4v3" />
+        </svg>
+        <span>{{ loading() ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ' }}</span>
+      </button>
+
       @if (error()) {
         <p class="alert" role="alert">{{ error() }}</p>
       }
-      <button class="btn-primary submit" type="submit" [disabled]="loading()">
-        {{ loading() ? 'กำลังเข้าสู่ระบบ…' : '🔒 เข้าสู่ระบบ' }}
-      </button>
     </form>
   </section>
 </main>
+
 <footer class="login-footer">
-  ระบบนี้สำหรับเจ้าหน้าที่กองบินตำรวจเท่านั้น · © 2026 กองบินตำรวจ
+  <span>ระบบนี้สำหรับเจ้าหน้าที่กองบินตำรวจเท่านั้น</span>
+  <i aria-hidden="true"></i>
+  <span>© 2026 กองบินตำรวจ</span>
 </footer>

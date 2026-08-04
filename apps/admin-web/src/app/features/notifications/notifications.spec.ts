@@ -1,7 +1,7 @@
 import { registerLocaleData } from '@angular/common';
 import localeTh from '@angular/common/locales/th';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { NotificationItem } from '../../core/models';
@@ -16,17 +16,22 @@ describe('NotificationsComponent', () => {
     message: 'CASE-001',
     createdAt: '2026-08-01T06:00:00.000Z',
     isRead: false,
+    incidentId: 'incident-1',
   };
 
   it('เปิด modal ยืนยันก่อนลบและไม่มีปุ่มอ่านทั้งหมด', async () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'patch', 'delete']);
+    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     api.get.and.returnValue(
       of({ items: [notice], pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } }),
     );
     api.delete.and.returnValue(of({ deleted: true }));
     await TestBed.configureTestingModule({
       imports: [NotificationsComponent],
-      providers: [provideRouter([]), { provide: ApiService, useValue: api }],
+      providers: [
+        { provide: Router, useValue: router },
+        { provide: ApiService, useValue: api },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(NotificationsComponent);
@@ -42,5 +47,29 @@ describe('NotificationsComponent', () => {
 
     fixture.componentInstance.confirmRemove();
     expect(api.delete).toHaveBeenCalledWith('notifications/notice-1');
+  });
+
+  it('กดรายการแจ้งเตือนแล้วทำเครื่องหมายว่าอ่านและเปิดรายละเอียดเหตุ', async () => {
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'patch', 'delete']);
+    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    api.get.and.returnValue(
+      of({ items: [notice], pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } }),
+    );
+    api.patch.and.returnValue(of({ read: true }));
+    router.navigate.and.resolveTo(true);
+    await TestBed.configureTestingModule({
+      imports: [NotificationsComponent],
+      providers: [
+        { provide: Router, useValue: router },
+        { provide: ApiService, useValue: api },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(NotificationsComponent);
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('article')?.click();
+
+    expect(api.patch).toHaveBeenCalledWith('notifications/notice-1/read', {});
+    expect(router.navigate).toHaveBeenCalledWith(['/incidents', 'incident-1']);
   });
 });

@@ -366,7 +366,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
               onSelected: (value) => setState(() => status = value),
               itemBuilder: (_) => const [
                 PopupMenuItem(value: '', child: Text('ทุกสถานะ')),
-                PopupMenuItem(value: 'RECEIVED', child: Text('รับแจ้งแล้ว')),
+                PopupMenuItem(value: 'RECEIVED', child: Text('รอดำเนินการ')),
                 PopupMenuItem(
                   value: 'IN_PROGRESS',
                   child: Text('กำลังดำเนินการ'),
@@ -406,6 +406,12 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, i) {
                   final item = items[i];
+                  final statusColor = switch (item.status) {
+                    'COMPLETED' => AppTheme.success,
+                    'IN_PROGRESS' || 'INSPECTING' => AppTheme.warning,
+                    'CANCELLED' => AppTheme.danger,
+                    _ => AppTheme.primary,
+                  };
                   return Card(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(
@@ -471,10 +477,29 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                                 ],
                               ),
                             ),
-                            Chip(
-                              label: Text(
-                                item.status,
-                                style: const TextStyle(fontSize: 10),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 105),
+                              child: Chip(
+                                backgroundColor: statusColor.withValues(
+                                  alpha: .09,
+                                ),
+                                side: BorderSide(
+                                  color: statusColor.withValues(alpha: .24),
+                                ),
+                                labelPadding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                ),
+                                label: Text(
+                                  incidentStatusLabel(item.status),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.fade,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -525,16 +550,6 @@ class ProfileTab extends ConsumerWidget {
                 padding: const EdgeInsets.all(22),
                 child: Column(
                   children: [
-                    const CircleAvatar(
-                      radius: 45,
-                      backgroundColor: AppTheme.primaryLight,
-                      child: Icon(
-                        Icons.person,
-                        color: AppTheme.primary,
-                        size: 48,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                     profile.when(
                       loading: () => const CircularProgressIndicator(),
                       error: (_, __) => TextButton(
@@ -543,6 +558,11 @@ class ProfileTab extends ConsumerWidget {
                       ),
                       data: (user) => Column(
                         children: [
+                          CitizenAvatar(
+                            profileImageUrl: user.profileImageUrl,
+                            radius: 45,
+                          ),
+                          const SizedBox(height: 12),
                           Text(
                             user.fullName,
                             style: const TextStyle(
@@ -641,7 +661,7 @@ class PrivacyScreen extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         Text(
-          'ชื่อและข้อมูลติดต่อ รายละเอียดและภาพเหตุการณ์ พิกัดตำแหน่ง ประวัติสถานะ และข้อมูลบัญชี Facebook ที่ผู้ใช้อนุญาต',
+          'ชื่อ รูปโปรไฟล์ และอีเมล (เมื่อผู้ใช้อนุญาต) จากบัญชี LINE รวมถึงรายละเอียดและภาพเหตุการณ์ พิกัดตำแหน่ง และประวัติสถานะ',
           style: TextStyle(height: 1.7),
         ),
         SizedBox(height: 12),

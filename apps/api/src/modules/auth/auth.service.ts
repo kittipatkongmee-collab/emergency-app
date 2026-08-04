@@ -12,6 +12,7 @@ import {
   CitizenIdentityProfile,
   DevelopmentAuthProvider,
   FacebookAuthProvider,
+  LineAuthProvider,
 } from './auth-provider';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly developmentProvider: DevelopmentAuthProvider,
     private readonly facebookProvider: FacebookAuthProvider,
+    private readonly lineProvider: LineAuthProvider,
   ) {}
 
   async adminLogin(username: string, password: string) {
@@ -76,6 +78,12 @@ export class AuthService {
   async citizenFacebook(accessToken: string) {
     return this.citizenFromProfile(
       await this.facebookProvider.authenticate(accessToken),
+    );
+  }
+
+  async citizenLine(idToken: string, nonce: string) {
+    return this.citizenFromProfile(
+      await this.lineProvider.authenticate(idToken, nonce),
     );
   }
 

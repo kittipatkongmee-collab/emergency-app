@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:police_incident_mobile/core/app_core.dart';
 import 'package:police_incident_mobile/features/auth/auth.dart';
 import 'package:police_incident_mobile/features/home/operational_home.dart';
@@ -30,6 +31,21 @@ void main() {
       expect(incidentTypeLabel('DISASTER_RELIEF'), 'ช่วยเหลือบรรเทาสาธารณภัย');
     });
 
+    test('ระบุชนิดไฟล์รูปภาพก่อนอัปโหลด', () {
+      expect(incidentImageMediaType('evidence.jpg').toString(), 'image/jpeg');
+      expect(incidentImageMediaType('evidence.png').toString(), 'image/png');
+    });
+
+    test('แสดงชื่อสถานะการแจ้งเหตุเป็นภาษาไทย', () {
+      expect(incidentStatusLabel('RECEIVED'), 'รอดำเนินการ');
+      expect(incidentStatusLabel('FORWARDED'), 'ส่งต่อเจ้าหน้าที่');
+      expect(incidentStatusLabel('INSPECTING'), 'กำลังเข้าตรวจสอบ');
+      expect(incidentStatusLabel('IN_PROGRESS'), 'กำลังดำเนินการ');
+      expect(incidentStatusLabel('COMPLETED'), 'ภารกิจสำเร็จ');
+      expect(incidentStatusLabel('CANCELLED'), 'ยกเลิก');
+      expect(incidentStatusLabel('UNKNOWN'), 'ไม่ทราบสถานะ');
+    });
+
     testWidgets('หน้าแจ้งเหตุแสดงประเภทที่เลือกแล้ว', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -42,6 +58,103 @@ void main() {
       expect(find.text('ประเภทการแจ้งเหตุที่เลือก'), findsOneWidget);
       expect(find.text('ช่วยเหลือบรรเทาสาธารณภัย'), findsOneWidget);
       expect(find.text('เลือกแล้ว'), findsOneWidget);
+    });
+
+    testWidgets('แผนที่จำลองแตะหรือลากหมุดเพื่อเปลี่ยนพิกัดได้', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(411, 923));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ReportDraftNotifier()
+        ..update(
+          const ReportDraft(
+            latitude: 37.4219983,
+            longitude: -122.084,
+            locationSelected: true,
+          ),
+        );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [reportDraftProvider.overrideWith((_) => notifier)],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const LocationScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      const originalCoordinates =
+          'ละติจูด 37.4219983    |    ลองจิจูด -122.0840000';
+      expect(find.text(originalCoordinates), findsOneWidget);
+      await tester.drag(
+        find.byKey(const Key('interactive-simulated-map')),
+        const Offset(70, -50),
+      );
+      await tester.pump();
+      expect(find.text(originalCoordinates), findsNothing);
+
+      final confirmLabel = tester.widget<Text>(find.text('ยืนยันตำแหน่ง'));
+      expect(confirmLabel.maxLines, 1);
+      expect(confirmLabel.softWrap, isFalse);
+    });
+
+    testWidgets('แผนที่ใช้ตำแหน่งจริงของอุปกรณ์เป็นจุดเริ่มต้น', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(411, 923));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final locationAdapter = _FixedDeviceLocationAdapter(
+        latitude: 13.7563301,
+        longitude: 100.5017652,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            deviceLocationProvider.overrideWithValue(locationAdapter),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const LocationScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(locationAdapter.requestCount, 1);
+      expect(
+        find.text('ละติจูด 13.7563301    |    ลองจิจูด 100.5017652'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('หน้าแจ้งเหตุแสดงรูปที่เพิ่มเป็นรายการเลื่อนแนวนอน', (
+      tester,
+    ) async {
+      final notifier = ReportDraftNotifier()
+        ..update(
+          ReportDraft(
+            images: [
+              XFile('assets/images/bell-429-global-ranger.jpg'),
+              XFile('assets/images/bell-412-ep.jpg'),
+            ],
+          ),
+        );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [reportDraftProvider.overrideWith((_) => notifier)],
+          child: MaterialApp(theme: AppTheme.light, home: const ReportScreen()),
+        ),
+      );
+      await tester.pump();
+
+      final photoCarousel = tester.widget<ListView>(
+        find.byKey(const PageStorageKey('incident-photo-carousel')),
+      );
+      expect(photoCarousel.scrollDirection, Axis.horizontal);
+      expect(find.text('ปัดซ้าย–ขวา'), findsOneWidget);
+      expect(find.text('เพิ่มแล้ว 2 จาก 5 รูป'), findsOneWidget);
     });
 
     test('ตรวจพบฟอร์มที่ข้อมูลสำคัญไม่ครบ', () {
@@ -154,6 +267,60 @@ void main() {
       expect(pressed, isTrue);
     });
 
+    testWidgets('หน้าเข้าสู่ระบบจัดหัวข้อสองบรรทัดและข้อมูลติดต่อไว้ล่างสุด', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(411, 923));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: LoginScreen())),
+      );
+      await tester.pumpAndSettle();
+
+      final heading = tester.widget<Text>(
+        find.text('หน่วยค้นหาและช่วยเหลือ\nทางอากาศ (SRU)'),
+      );
+      expect(heading.maxLines, 2);
+      expect(heading.style?.fontSize, 32);
+      expect(find.text('ระบบแจ้งเหตุและติดตามสถานะเหตุฉุกเฉิน'), findsNothing);
+      expect(
+        find.text(
+          'เพื่อความปลอดภัยของข้อมูล และสามารถติดตามสถานะเหตุได้อย่างครบถ้วน',
+        ),
+        findsNothing,
+      );
+
+      final aviationLogo = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/images/police-aviation-logo.png',
+      );
+      expect(tester.getCenter(aviationLogo).dx, closeTo(205.5, 1));
+      expect(tester.getCenter(find.byType(Card)).dx, closeTo(205.5, 1));
+
+      final headingBottom = tester
+          .getBottomRight(find.text('หน่วยค้นหาและช่วยเหลือ\nทางอากาศ (SRU)'))
+          .dy;
+      final lineButtonTop = tester.getTopLeft(find.byType(GradientButton)).dy;
+      final brandGroupCenter = tester
+          .getRect(find.byKey(const Key('login-brand-group')))
+          .center
+          .dy;
+      expect(brandGroupCenter, closeTo((headingBottom + lineButtonTop) / 2, 1));
+
+      final privacyBottom = tester.getBottomRight(
+        find.text('ดูนโยบายความเป็นส่วนตัว'),
+      );
+      final contactBottom = tester.getBottomRight(
+        find.text(
+          'กองบินตำรวจ\n701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520',
+        ),
+      );
+      expect(contactBottom.dy, greaterThan(privacyBottom.dy));
+    });
+
     testWidgets('เลือกประเภทเหตุการณ์ก่อนเข้าสู่ฟอร์มแจ้งเหตุ', (tester) async {
       String? selectedType;
       await tester.pumpWidget(
@@ -176,12 +343,25 @@ void main() {
       expect(find.text('เลือกประเภทการแจ้งเหตุ'), findsOneWidget);
       expect(find.text('อากาศยานประสบภัย'), findsOneWidget);
       expect(find.text('ช่วยเหลือบรรเทาสาธารณภัย'), findsOneWidget);
+      expect(
+        find.text('อุบัติเหตุ เหตุฉุกเฉิน หรือขอความช่วยเหลือด้านอากาศยาน'),
+        findsNothing,
+      );
+      expect(
+        find.text('ขอความช่วยเหลือจากภัยพิบัติหรือเหตุฉุกเฉินของประชาชน'),
+        findsNothing,
+      );
+      final disasterReliefTitle = tester.widget<Text>(
+        find.text('ช่วยเหลือบรรเทาสาธารณภัย'),
+      );
+      expect(disasterReliefTitle.maxLines, 1);
+      expect(disasterReliefTitle.softWrap, isFalse);
       await tester.tap(find.text('ช่วยเหลือบรรเทาสาธารณภัย'));
       await tester.pumpAndSettle();
       expect(selectedType, 'DISASTER_RELIEF');
     });
 
-    testWidgets('หน้าแรกแสดงชื่อผู้ใช้ ปุ่มแจ้งเหตุ และ empty state', (
+    testWidgets('หน้าแรกแสดงชื่อผู้ใช้และซ่อนกล่องรายการเมื่อยังไม่มีเหตุ', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -203,6 +383,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('สวัสดี test1'), findsOneWidget);
       expect(find.text('หน่วยค้นหาและช่วยเหลือทางอากาศ (SRU)'), findsOneWidget);
+      final header = tester.widget<Container>(
+        find.byKey(const Key('home-header-background')),
+      );
+      final headerDecoration = header.decoration as BoxDecoration;
+      expect(
+        (headerDecoration.image?.image as AssetImage).assetName,
+        'assets/images/home-header-background.png',
+      );
       final welcomeMessage = tester.widget<Text>(
         find.text('หากพบเหตุฉุกเฉิน แจ้งเหตุได้ทันที\nเราพร้อมช่วยเหลือคุณ'),
       );
@@ -220,14 +408,11 @@ void main() {
           'assets/images/police-aviation-logo.png',
         ]),
       );
-      expect(
-        tester
-            .widget<Text>(
-              find.text('แจ้งเหตุได้รวดเร็ว ติดตามสถานะได้แบบเรียลไทม์'),
-            )
-            .maxLines,
-        1,
+      final realtimeCaption = tester.widget<Text>(
+        find.text('แจ้งเหตุได้รวดเร็ว ติดตามสถานะได้แบบเรียลไทม์'),
       );
+      expect(realtimeCaption.maxLines, 1);
+      expect(realtimeCaption.style?.fontSize, 15);
       final trackingButtonText = tester.widget<Text>(
         find.descendant(
           of: find.byType(FilledButton),
@@ -242,7 +427,11 @@ void main() {
       );
       expect(find.textContaining('กองบินตำรวจ 0 2509 1520'), findsNothing);
       expect(find.text('แจ้งเหตุใหม่'), findsOneWidget);
-      expect(find.text('ยังไม่มีรายการแจ้งเหตุ'), findsOneWidget);
+      expect(find.text('ยังไม่มีรายการแจ้งเหตุ'), findsNothing);
+      expect(
+        find.text('เมื่อแจ้งเหตุแล้ว รายการล่าสุดจะแสดงที่นี่'),
+        findsNothing,
+      );
     });
   });
 
@@ -376,4 +565,21 @@ void main() {
       expect(find.text('รูปภาพ 2 จาก 6'), findsOneWidget);
     });
   });
+}
+
+class _FixedDeviceLocationAdapter implements DeviceLocationAdapter {
+  _FixedDeviceLocationAdapter({
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final double latitude;
+  final double longitude;
+  int requestCount = 0;
+
+  @override
+  Future<DevicePosition> currentPosition() async {
+    requestCount += 1;
+    return DevicePosition(latitude: latitude, longitude: longitude);
+  }
 }

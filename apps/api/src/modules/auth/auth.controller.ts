@@ -9,6 +9,7 @@ import {
   ChangePasswordDto,
   DevelopmentLoginDto,
   FacebookLoginDto,
+  LineLoginDto,
   RefreshDto,
 } from './auth.dto';
 import { AuthService } from './auth.service';
@@ -33,6 +34,12 @@ export class CitizenAuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   facebook(@Body() dto: FacebookLoginDto) {
     return this.auth.citizenFacebook(dto.accessToken);
+  }
+  @Public()
+  @Post('line')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  line(@Body() dto: LineLoginDto) {
+    return this.auth.citizenLine(dto.idToken, dto.nonce);
   }
   @Public() @Post('refresh') refresh(@Body() dto: RefreshDto) {
     return this.auth.refresh(dto.refreshToken);

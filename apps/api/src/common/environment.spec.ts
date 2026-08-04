@@ -51,6 +51,15 @@ describe('validateEnvironment', () => {
     ).toThrow('เปิด FCM ได้เมื่อกำหนด service-account credentials ครบแล้ว');
   });
 
+  it('rejects LINE Login when the channel ID is missing', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnvironment,
+        LINE_LOGIN_ENABLED: 'true',
+      }),
+    ).toThrow('เปิด LINE Login ได้เมื่อกำหนด LINE Channel ID เป็นตัวเลขแล้ว');
+  });
+
   it('rejects local file storage in production', () => {
     expect(() =>
       validateEnvironment({

@@ -107,7 +107,7 @@ export class IncidentsService {
               statusHistory: {
                 create: {
                   toStatus: IncidentStatus.RECEIVED,
-                  note: 'ระบบรับแจ้งเหตุแล้ว',
+                  note: 'ระบบได้รับรายการและรอดำเนินการ',
                 },
               },
             },
@@ -117,8 +117,8 @@ export class IncidentsService {
             data: {
               citizenUserId,
               incidentId: created.id,
-              title: 'รับแจ้งเหตุแล้ว',
-              message: `เลขที่ ${caseCode}`,
+              title: 'รอดำเนินการ',
+              message: `ระบบได้รับรายการเลขที่ ${caseCode} และกำลังรอเจ้าหน้าที่รับแจ้งเหตุ`,
               type: NotificationType.INCIDENT_CREATED,
             },
           });

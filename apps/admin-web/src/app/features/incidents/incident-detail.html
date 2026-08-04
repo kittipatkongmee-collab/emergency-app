@@ -14,9 +14,9 @@
     <div>
       <p class="eyebrow">{{ i.caseCode }}</p>
       <h1 class="page-title">รายละเอียดเหตุการณ์</h1>
-      <p class="muted">รับแจ้งเมื่อ {{ i.reportedAt | date: 'd MMMM y เวลา HH:mm' : '' : 'th' }}</p>
+      <p class="muted">รับแจ้งเมื่อ {{ i.reportedAt | thaiBuddhistDate: 'long' }}</p>
     </div>
-    <span class="status">{{ statusLabel(i.status) }}</span>
+    <span class="status" [attr.data-status]="i.status">{{ statusLabel(i.status) }}</span>
   </section>
   @if (error()) {
     <p class="alert">{{ error() }}</p>
@@ -38,10 +38,6 @@
               <dd>
                 <a [href]="'tel:' + i.reporterPhone">{{ i.reporterPhone }}</a>
               </dd>
-            </div>
-            <div>
-              <dt>ความสำคัญ</dt>
-              <dd>{{ i.priority }}</dd>
             </div>
             <div>
               <dt>ผู้รับผิดชอบ</dt>
@@ -73,7 +69,15 @@
         @if (i.images.length) {
           <div>
             @for (image of i.images; track image.id) {
-              <img [src]="mediaUrl(image.imageUrl)" [alt]="image.originalName" />
+              <button
+                type="button"
+                class="gallery-image"
+                [attr.aria-label]="'ขยายรูป ' + image.originalName"
+                (click)="openImagePreview(image.imageUrl, image.originalName)"
+              >
+                <img [src]="mediaUrl(image.imageUrl)" [alt]="image.originalName" />
+                <span aria-hidden="true">ขยายรูป</span>
+              </button>
             }
           </div>
         } @else {
@@ -97,20 +101,17 @@
           </p>
         }
         @if (canAccept) {
-          <p class="muted">กดยืนยันเพื่อรับผิดชอบเหตุการณ์นี้และเริ่มดำเนินการทันที</p>
+          <p class="muted">กดยืนยันเพื่อรับแจ้งเหตุการณ์นี้</p>
           <button class="btn-primary" type="button" (click)="openConfirmation('accept')">
             รับแจ้งเหตุ
           </button>
         } @else if (canComplete) {
-          <p class="muted">เมื่อดำเนินการเรียบร้อยแล้ว กรุณายืนยันปิดภารกิจ</p>
           <button class="btn-primary" type="button" (click)="openConfirmation('complete')">
             ภารกิจสำเร็จ
           </button>
         } @else if (i.status === 'IN_PROGRESS') {
           <p class="workflow-message">เหตุการณ์นี้กำลังดำเนินการโดยเจ้าหน้าที่ผู้รับผิดชอบ</p>
-        } @else if (i.status === 'COMPLETED') {
-          <p class="workflow-message success">ดำเนินการและแจ้งผลให้ผู้แจ้งเหตุแล้ว</p>
-        } @else {
+        } @else if (i.status !== 'COMPLETED') {
           <p class="workflow-message">เหตุการณ์นี้ไม่สามารถดำเนินการต่อได้</p>
         }
       </section>
@@ -121,7 +122,7 @@
             <i>✓</i>
             <div>
               <b>{{ statusLabel(h.toStatus) }}</b
-              ><time>{{ h.changedAt | date: 'd MMM y HH:mm' : '' : 'th' }}</time>
+              ><time>{{ h.changedAt | thaiBuddhistDate }}</time>
               <p>{{ h.note || 'ไม่มีหมายเหตุ' }}</p>
               <small>{{ h.changedByAdminUser?.fullName || 'ระบบ' }}</small>
             </div>
@@ -176,6 +177,28 @@
             }}
           </button>
         </div>
+      </section>
+    </div>
+  }
+  @if (imagePreview(); as preview) {
+    <div class="image-preview-backdrop" (click)="closeImagePreview()">
+      <section
+        class="image-preview"
+        role="dialog"
+        aria-modal="true"
+        aria-label="รูปภาพเหตุการณ์ขนาดใหญ่"
+        (click)="$event.stopPropagation()"
+      >
+        <button
+          type="button"
+          class="image-preview-close"
+          aria-label="ปิดรูปภาพขนาดใหญ่"
+          (click)="closeImagePreview()"
+        >
+          ×
+        </button>
+        <img [src]="preview.url" [alt]="preview.alt" />
+        <p>{{ preview.alt }}</p>
       </section>
     </div>
   }

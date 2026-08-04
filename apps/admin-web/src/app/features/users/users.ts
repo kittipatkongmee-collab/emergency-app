@@ -3,7 +3,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { AdminRole, AdminUser, Page } from '../../core/models';
+import { AdminRole, AdminUser, Page, StaffPosition } from '../../core/models';
 
 interface PendingUserAction {
   kind: 'status' | 'delete';
@@ -19,26 +19,30 @@ interface PendingUserAction {
 })
 export class UsersComponent implements OnInit {
   readonly users = signal<AdminUser[]>([]);
+  readonly positions = signal<StaffPosition[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly actionBusy = signal(false);
   readonly createDialogOpen = signal(false);
   readonly editDialogOpen = signal(false);
+  readonly positionDialogOpen = signal(false);
+  readonly positionSaving = signal(false);
   readonly selectedUser = signal<AdminUser | null>(null);
   readonly pendingAction = signal<PendingUserAction | null>(null);
   readonly error = signal('');
   readonly message = signal('');
   readonly actionError = signal('');
+  readonly positionMessage = signal('');
   readonly form = new FormGroup({
-    username: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(3)],
-    }),
     fullName: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(2)],
     }),
-    role: new FormControl<AdminRole>('OFFICER', { nonNullable: true }),
+    positionId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    username: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(3)],
+    }),
     password: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(12)],
@@ -51,7 +55,13 @@ export class UsersComponent implements OnInit {
     }),
     email: new FormControl('', { nonNullable: true, validators: [Validators.email] }),
     phone: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(32)] }),
-    role: new FormControl<AdminRole>('OFFICER', { nonNullable: true }),
+    positionId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
+  readonly positionForm = new FormGroup({
+    name: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    }),
   });
 
   constructor(
@@ -61,6 +71,7 @@ export class UsersComponent implements OnInit {
 
   ngOnInit() {
     this.load();
+    this.loadPositions();
   }
 
   canCreate() {
@@ -74,7 +85,7 @@ export class UsersComponent implements OnInit {
 
   openCreateDialog() {
     if (!this.canCreate()) return;
-    this.form.reset({ username: '', fullName: '', role: 'OFFICER', password: '' });
+    this.form.reset({ fullName: '', positionId: '', username: '', password: '' });
     this.message.set('');
     this.createDialogOpen.set(true);
   }
@@ -82,7 +93,7 @@ export class UsersComponent implements OnInit {
   closeCreateDialog() {
     if (this.saving()) return;
     this.createDialogOpen.set(false);
-    this.form.reset({ username: '', fullName: '', role: 'OFFICER', password: '' });
+    this.form.reset({ fullName: '', positionId: '', username: '', password: '' });
     this.message.set('');
   }
 
@@ -93,7 +104,7 @@ export class UsersComponent implements OnInit {
       fullName: user.fullName,
       email: user.email ?? '',
       phone: user.phone ?? '',
-      role: user.role,
+      positionId: user.positionId ?? '',
     });
     this.message.set('');
     this.editDialogOpen.set(true);
@@ -104,6 +115,20 @@ export class UsersComponent implements OnInit {
     this.editDialogOpen.set(false);
     this.selectedUser.set(null);
     this.message.set('');
+  }
+
+  openPositionDialog() {
+    if (!this.canCreate()) return;
+    this.positionForm.reset({ name: '' });
+    this.positionMessage.set('');
+    this.positionDialogOpen.set(true);
+  }
+
+  closePositionDialog() {
+    if (this.positionSaving()) return;
+    this.positionDialogOpen.set(false);
+    this.positionForm.reset({ name: '' });
+    this.positionMessage.set('');
   }
 
   requestStatusChange(user: AdminUser) {
@@ -139,6 +164,37 @@ export class UsersComponent implements OnInit {
     });
   }
 
+  loadPositions() {
+    this.api.get<StaffPosition[]>('admin/staff-positions').subscribe({
+      next: (positions) => this.positions.set(positions),
+      error: () => this.positionMessage.set('ไม่สามารถโหลดข้อมูลตำแหน่งได้'),
+    });
+  }
+
+  createPosition() {
+    if (this.positionForm.invalid || this.positionSaving()) {
+      this.positionForm.markAllAsTouched();
+      return;
+    }
+    this.positionSaving.set(true);
+    this.positionMessage.set('');
+    this.api
+      .post<StaffPosition>('admin/staff-positions', this.positionForm.getRawValue())
+      .pipe(finalize(() => this.positionSaving.set(false)))
+      .subscribe({
+        next: (position) => {
+          this.positions.update((positions) =>
+            [...positions, position].sort((left, right) =>
+              left.name.localeCompare(right.name, 'th'),
+            ),
+          );
+          this.positionForm.reset({ name: '' });
+          this.positionMessage.set('บันทึกตำแหน่งแล้ว');
+        },
+        error: () => this.positionMessage.set('บันทึกตำแหน่งไม่สำเร็จ หรือมีชื่อนี้อยู่แล้ว'),
+      });
+  }
+
   create() {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
@@ -150,7 +206,7 @@ export class UsersComponent implements OnInit {
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: () => {
-          this.form.reset({ username: '', fullName: '', role: 'OFFICER', password: '' });
+          this.form.reset({ fullName: '', positionId: '', username: '', password: '' });
           this.message.set('เพิ่มเจ้าหน้าที่แล้ว');
           this.createDialogOpen.set(false);
           this.load();
@@ -172,7 +228,7 @@ export class UsersComponent implements OnInit {
         fullName: value.fullName,
         email: value.email || undefined,
         phone: value.phone || undefined,
-        role: value.role,
+        positionId: value.positionId,
       })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
