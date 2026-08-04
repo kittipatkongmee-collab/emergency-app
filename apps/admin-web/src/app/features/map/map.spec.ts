@@ -1,13 +1,15 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Incident, IncidentPage } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
+import { IncidentLocationMapComponent } from './incident-location-map';
 import { IncidentMapComponent } from './map';
 
 describe('IncidentMapComponent', () => {
-  it('แสดงหมุดเฉพาะเหตุที่ยังไม่สำเร็จและคงรายการที่สำเร็จไว้', async () => {
+  it('แสดงแผนที่รวมด้านบนและเลือกดูแผนที่แต่ละรายการด้วยรายการด้านข้าง', async () => {
     const baseIncident: Incident = {
       id: 'incident-active',
       caseCode: 'CASE-001',
@@ -35,10 +37,18 @@ describe('IncidentMapComponent', () => {
       items: [baseIncident, completedIncident],
       pagination: { page: 1, limit: 100, total: 2, totalPages: 1 },
     };
+    const completedPage: IncidentPage = {
+      ...page,
+      items: [{ ...baseIncident, status: 'COMPLETED' }, completedIncident],
+    };
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
-    api.get.and.returnValue(of(page));
+    api.get.and.returnValues(of(page), of(completedPage));
     const realtime = jasmine.createSpyObj<RealtimeService>('RealtimeService', ['on']);
-    realtime.on.and.returnValue(() => undefined);
+    let updatedListener: (() => void) | undefined;
+    realtime.on.and.callFake((event: string, listener: () => void) => {
+      if (event === 'incident.updated') updatedListener = listener;
+      return () => undefined;
+    });
     await TestBed.configureTestingModule({
       imports: [IncidentMapComponent],
       providers: [
@@ -53,8 +63,30 @@ describe('IncidentMapComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(fixture.componentInstance.activeIncidents().length).toBe(1);
-    expect(element.querySelectorAll('.map-marker').length).toBe(1);
+    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(1);
+    expect(element.querySelectorAll('app-incident-location-map').length).toBe(1);
+    expect(element.querySelectorAll('.locations article').length).toBe(2);
     expect(element.querySelector('.locations article.completed')?.textContent).toContain('สำเร็จ');
+    expect(api.get).toHaveBeenCalledWith('admin/incidents', { page: '1', limit: '100' });
     expect(realtime.on).toHaveBeenCalledWith('incident.updated', jasmine.any(Function));
+
+    const listButtons = element.querySelectorAll<HTMLButtonElement>('.locations article > button');
+    listButtons[1].click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.selectedId()).toBe('incident-completed');
+    expect(
+      fixture.debugElement.query(By.directive(IncidentLocationMapComponent)).componentInstance
+        .incident.id,
+    ).toBe('incident-completed');
+
+    updatedListener?.();
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    expect(fixture.componentInstance.activeIncidents().length).toBe(0);
+    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(0);
+    expect(element.querySelectorAll('app-incident-location-map').length).toBe(1);
+    expect(element.querySelectorAll('.locations article').length).toBe(2);
   });
 });

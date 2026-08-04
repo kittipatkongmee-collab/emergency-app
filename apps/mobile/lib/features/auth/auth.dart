@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/app_core.dart';
@@ -33,16 +37,24 @@ class AuthController extends StateNotifier<AsyncValue<bool>> {
             .read(secureStorageProvider)
             .write(key: 'developmentProfileId', value: profileId);
       } else {
-        if (!Environment.facebookLoginEnabled) {
-          throw Exception('ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Facebook');
+        if (!Environment.lineLoginConfigured) {
+          throw Exception('ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย LINE');
         }
-        final result = await FacebookAuth.instance.login(
-          permissions: ['public_profile', 'email'],
+        final nonce = _createNonce();
+        final option = LoginOption(false, 'normal')..idTokenNonce = nonce;
+        final scopes = <String>['profile', 'openid'];
+        if (Environment.lineEmailScopeEnabled) scopes.add('email');
+        final result = await LineSDK.instance.login(
+          scopes: scopes,
+          option: option,
         );
-        if (result.status != LoginStatus.success || result.accessToken == null)
-          throw Exception('ยกเลิกการเข้าสู่ระบบ');
-        await _exchange('/auth/facebook', {
-          'accessToken': result.accessToken!.tokenString,
+        final idToken = result.accessToken.idTokenRaw;
+        if (idToken == null || idToken.isEmpty) {
+          throw Exception('LINE ไม่ได้ส่งข้อมูลยืนยันตัวตนกลับมา');
+        }
+        await _exchange('/auth/line', {
+          'idToken': idToken,
+          'nonce': result.idTokenNonce ?? nonce,
         });
       }
       if (Environment.fcmEnabled) {
@@ -82,9 +94,21 @@ class AuthController extends StateNotifier<AsyncValue<bool>> {
       }
     }
     await storage.deleteAll();
-    await FacebookAuth.instance.logOut();
+    if (Environment.lineLoginConfigured) {
+      try {
+        await LineSDK.instance.logout();
+      } catch (_) {
+        // Local logout still completes if the LINE session is already gone.
+      }
+    }
     ref.invalidate(citizenProfileProvider);
     state = const AsyncData(false);
+  }
+
+  String _createNonce() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64UrlEncode(bytes).replaceAll('=', '');
   }
 
   Future<void> _exchange(String path, Map<String, dynamic> body) async {
@@ -139,6 +163,44 @@ final citizenProfileProvider = FutureProvider<CitizenProfile>((ref) async {
     (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
   );
 });
+
+class CitizenAvatar extends StatelessWidget {
+  const CitizenAvatar({this.profileImageUrl, this.radius = 34, super.key});
+
+  final String? profileImageUrl;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = profileImageUrl?.trim();
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppTheme.primaryLight,
+      child: url == null || url.isEmpty
+          ? Icon(
+              Icons.person_rounded,
+              size: radius * 1.1,
+              color: AppTheme.primary,
+            )
+          : ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: url,
+                width: radius * 2,
+                height: radius * 2,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                errorWidget: (_, __, ___) => Icon(
+                  Icons.person_rounded,
+                  size: radius * 1.1,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ),
+    );
+  }
+}
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -206,151 +268,125 @@ class LoginScreen extends ConsumerWidget {
               constraints: BoxConstraints(
                 minHeight: constraints.maxHeight - 52,
               ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 18),
-                  const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'หน่วยค้นหาและช่วยเหลือทางอากาศ (SRU)',
-                      maxLines: 1,
-                      softWrap: false,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.primaryDark,
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 18),
+                    Semantics(
+                      header: true,
+                      child: const Text(
+                        'หน่วยค้นหาและช่วยเหลือ\nทางอากาศ (SRU)',
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 32,
+                          height: 1.18,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primaryDark,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'ระบบแจ้งเหตุและติดตามสถานะเหตุฉุกเฉิน',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppTheme.textSecondary,
+                    const SizedBox(height: 24),
+                    const Spacer(),
+                    Column(
+                      key: const Key('login-brand-group'),
+                      children: [
+                        const Center(child: PoliceAviationLogo(size: 220)),
+                        const SizedBox(height: 22),
+                        Center(
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 22,
+                                vertical: 24,
+                              ),
+                              child: const Text(
+                                'เข้าสู่ระบบก่อนแจ้งเหตุ',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.primaryDark,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: 68,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppTheme.primary, Color(0xFFE4BFC4)],
-                      ),
-                      borderRadius: BorderRadius.circular(4),
+                    const Spacer(),
+                    const SizedBox(height: 24),
+                    GradientButton(
+                      label: isDevBypass
+                          ? 'เข้าสู่ระบบสำหรับทดสอบ (test1)'
+                          : 'เชื่อมต่อและเข้าสู่ระบบด้วย LINE',
+                      icon: isDevBypass ? Icons.login_rounded : null,
+                      iconWidget: isDevBypass
+                          ? null
+                          : Image.asset(
+                              'assets/images/line-logo.png',
+                              width: 28,
+                              height: 28,
+                              semanticLabel: 'โลโก้ LINE',
+                            ),
+                      colors: isDevBypass
+                          ? const [Color(0xFFB10017), Color(0xFF680008)]
+                          : const [Color(0xFF06C755), Color(0xFF05B84E)],
+                      shadowColor: isDevBypass
+                          ? const Color(0x308F0010)
+                          : const Color(0x3306C755),
+                      busy: auth.isLoading,
+                      onPressed: isDevBypass
+                          ? () => ref
+                                .read(authProvider.notifier)
+                                .login(profileId: 'test1')
+                          : Environment.lineLoginConfigured
+                          ? () => ref.read(authProvider.notifier).login()
+                          : null,
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  const PoliceAviationLogo(size: 220),
-                  const SizedBox(height: 22),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 28,
+                    if (!isDevBypass && !Environment.lineLoginConfigured)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child: Text(
+                          'ยังไม่ได้ตั้งค่า LINE Channel ID',
+                          style: TextStyle(color: AppTheme.warning),
+                        ),
                       ),
-                      child: Column(
+                    if (auth.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          thaiError(auth.error!),
+                          style: const TextStyle(color: AppTheme.danger),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => context.push('/privacy'),
+                      child: const Text('ดูนโยบายความเป็นส่วนตัว'),
+                    ),
+                    const Divider(height: 32),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.primaryLight,
-                            ),
-                            child: const Icon(
-                              Icons.shield_outlined,
-                              color: AppTheme.primary,
-                              size: 42,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'เข้าสู่ระบบก่อนแจ้งเหตุ',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.primaryDark,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'เพื่อความปลอดภัยของข้อมูล และสามารถติดตามสถานะเหตุได้อย่างครบถ้วน',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              height: 1.55,
-                              color: AppTheme.textSecondary,
+                          RoyalThaiPoliceLogo(size: 64),
+                          SizedBox(width: 14),
+                          Flexible(
+                            child: Text(
+                              'กองบินตำรวจ\n701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520',
+                              style: TextStyle(
+                                color: AppTheme.primaryDark,
+                                height: 1.45,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  GradientButton(
-                    label: isDevBypass
-                        ? 'เข้าสู่ระบบสำหรับทดสอบ (test1)'
-                        : 'เข้าสู่ระบบด้วย Facebook',
-                    icon: isDevBypass ? Icons.login_rounded : Icons.facebook,
-                    busy: auth.isLoading,
-                    onPressed: isDevBypass
-                        ? () => ref
-                              .read(authProvider.notifier)
-                              .login(profileId: 'test1')
-                        : Environment.facebookLoginEnabled
-                        ? () => ref.read(authProvider.notifier).login()
-                        : null,
-                  ),
-                  if (!isDevBypass && !Environment.facebookLoginEnabled)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 12),
-                      child: Text(
-                        'ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Facebook',
-                        style: TextStyle(color: AppTheme.warning),
-                      ),
-                    ),
-                  if (auth.hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(
-                        thaiError(auth.error!),
-                        style: const TextStyle(color: AppTheme.danger),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '🔒 เราจะไม่โพสต์สิ่งใดลงในนามของคุณ\nข้อมูลของคุณจะถูกเก็บเป็นความลับและปลอดภัย',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.push('/privacy'),
-                    child: const Text('ดูนโยบายความเป็นส่วนตัว'),
-                  ),
-                  const Divider(height: 32),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      RoyalThaiPoliceLogo(size: 64),
-                      SizedBox(width: 14),
-                      Flexible(
-                        child: Text(
-                          'กองบินตำรวจ\n701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520',
-                          style: TextStyle(
-                            color: AppTheme.primaryDark,
-                            height: 1.45,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

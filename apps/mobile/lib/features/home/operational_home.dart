@@ -48,12 +48,13 @@ class _HomeContent extends ConsumerWidget {
         padding: EdgeInsets.zero,
         children: [
           Container(
+            key: const Key('home-header-background'),
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 60),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF3B0006), Color(0xFF9F0014)],
+              image: DecorationImage(
+                image: AssetImage('assets/images/home-header-background.png'),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
               ),
             ),
             child: Row(
@@ -101,14 +102,9 @@ class _HomeContent extends ConsumerWidget {
                   padding: const EdgeInsets.all(20),
                   child: Row(
                     children: [
-                      const CircleAvatar(
+                      CitizenAvatar(
+                        profileImageUrl: user.profileImageUrl,
                         radius: 34,
-                        backgroundColor: AppTheme.primaryLight,
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: 38,
-                          color: AppTheme.primary,
-                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -164,7 +160,7 @@ class _HomeContent extends ConsumerWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppTheme.primaryDark,
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -255,78 +251,51 @@ class _HomeContent extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
                 incidents.when(
-                  loading: () => const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.only(top: 18),
+                    child: Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
                     ),
                   ),
-                  error: (_, __) => _InlineError(
-                    onRetry: () => ref.invalidate(incidentsProvider),
+                  error: (_, __) => Padding(
+                    padding: const EdgeInsets.only(top: 18),
+                    child: _InlineError(
+                      onRetry: () => ref.invalidate(incidentsProvider),
+                    ),
                   ),
                   data: (items) {
                     if (items.isEmpty) {
-                      return const Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundColor: AppTheme.primaryLight,
-                                child: Icon(
-                                  Icons.inbox_outlined,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'ยังไม่มีรายการแจ้งเหตุ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    Text(
-                                      'เมื่อแจ้งเหตุแล้ว รายการล่าสุดจะแสดงที่นี่',
-                                      style: TextStyle(
-                                        color: AppTheme.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                      return const SizedBox.shrink();
                     }
                     final latest = items.first;
-                    return Card(
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: const CircleAvatar(
-                          backgroundColor: AppTheme.primaryLight,
-                          child: Icon(
-                            Icons.emergency_outlined,
-                            color: AppTheme.primary,
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 18),
+                      child: Card(
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          leading: const CircleAvatar(
+                            backgroundColor: AppTheme.primaryLight,
+                            child: Icon(
+                              Icons.emergency_outlined,
+                              color: AppTheme.primary,
+                            ),
                           ),
+                          title: Text(
+                            latest.caseCode,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Text(
+                            latest.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push('/tracking/${latest.id}'),
                         ),
-                        title: Text(
-                          latest.caseCode,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        subtitle: Text(
-                          latest.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/tracking/${latest.id}'),
                       ),
                     );
                   },
@@ -405,8 +374,6 @@ class _FeatureCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, size: 19),
                 ],
               ),
             ),

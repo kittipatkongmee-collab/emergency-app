@@ -14,11 +14,15 @@
       <span>ระบบบริหารและรับแจ้งเหตุ<br />ทางอากาศ บ.ตร.</span>
     </a>
     <nav aria-label="เมนูหลัก">
-      @for (item of menu(); track item[2]) {
-        <a [routerLink]="item[2]" routerLinkActive="active" (click)="open.set(false)">
-          <b>{{ item[0] }}</b
-          >{{ item[1] }}
-          @if (item[2] === '/notifications' && unread() > 0) {
+      @for (item of menu(); track item.route) {
+        <a [routerLink]="item.route" routerLinkActive="active" (click)="open.set(false)">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path [attr.d]="item.iconPath" />
+            </svg>
+          </span>
+          <span class="nav-label">{{ item.label }}</span>
+          @if (item.route === '/notifications' && unread() > 0) {
             <span class="nav-badge">{{ unread() > 99 ? '99+' : unread() }}</span>
           }
         </a>
@@ -52,12 +56,10 @@
         [attr.aria-expanded]="userMenuOpen()"
         (click)="toggleUserMenu($event)"
       >
-        <span>{{ (auth.user()?.fullName ?? 'จ').slice(0, 2) }}</span>
         <div>
           <b>{{ auth.user()?.fullName ?? 'เจ้าหน้าที่' }}</b>
           <small>{{ auth.user()?.role ?? '' }}</small>
         </div>
-        <i aria-hidden="true">{{ userMenuOpen() ? '⌄' : '⌃' }}</i>
       </button>
     </div>
   </aside>
@@ -69,7 +71,13 @@
       <button class="menu-button" (click)="open.set(true)" aria-label="เปิดเมนู">☰</button>
       <span class="spacer"></span>
       <a class="header-notification" routerLink="/notifications" aria-label="การแจ้งเตือน">
-        <span aria-hidden="true">🔔</span>
+        <span class="header-bell-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M12 22a2.5 2.5 0 0 0 2.35-1.65h-4.7A2.5 2.5 0 0 0 12 22Zm7.1-6.8-1.6-2.35V8a5.5 5.5 0 0 0-4.4-5.39V2a1.1 1.1 0 0 0-2.2 0v.61A5.5 5.5 0 0 0 6.5 8v4.85L4.9 15.2a1.15 1.15 0 0 0 .95 1.8h12.3a1.15 1.15 0 0 0 .95-1.8Z"
+            />
+          </svg>
+        </span>
         @if (unread() > 0) {
           <i>{{ unread() > 99 ? '99+' : unread() }}</i>
         }

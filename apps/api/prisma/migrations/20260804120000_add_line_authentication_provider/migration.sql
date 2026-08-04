@@ -1,0 +1,2 @@
+ALTER TABLE `ExternalIdentity`
+  MODIFY `provider` ENUM('DEVELOPMENT', 'FACEBOOK', 'LINE') NOT NULL;

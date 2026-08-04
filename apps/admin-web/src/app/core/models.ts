@@ -18,6 +18,13 @@ export interface Tokens {
 
 export type AdminRole = 'SUPER_ADMIN' | 'SUPERVISOR' | 'OFFICER' | 'VIEWER';
 
+export interface StaffPosition {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminUser {
   id: string;
   username: string;
@@ -25,6 +32,8 @@ export interface AdminUser {
   email?: string;
   phone?: string;
   role: AdminRole;
+  positionId?: string;
+  position?: StaffPosition;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 }
 

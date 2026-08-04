@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.incident-item-map {
+  width: 100%;
+  min-height: 600px;
+  background: #e9eef0;
+}
+
+@media (max-width: 900px) {
+  .incident-item-map {
+    min-height: 430px;
+  }
+}

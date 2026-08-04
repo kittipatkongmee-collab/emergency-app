@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -46,8 +48,8 @@ dependencies:
   firebase_messaging: ^16.4.3
   socket_io_client: ^3.1.6
   cached_network_image: ^3.4.1
-  flutter_facebook_auth: ^7.2.0
-  intl: ^0.20.3
+  flutter_line_sdk: ^2.7.2
+  intl: ^0.20.2
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
   video_player: ^2.11.1
@@ -80,6 +82,8 @@ flutter:
   assets:
     - assets/images/police-aviation-logo.png
     - assets/images/royal-thai-police-logo.png
+    - assets/images/line-logo.png
+    - assets/images/home-header-background.png
     - assets/images/bell-429-global-ranger.jpg
     - assets/images/bell-412-ep.jpg
     - assets/images/as365n3-dauphin.gif

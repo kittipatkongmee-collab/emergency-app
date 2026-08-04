@@ -3,6 +3,10 @@ import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
 export class FacebookLoginDto {
   @IsString() @MinLength(3) accessToken!: string;
 }
+export class LineLoginDto {
+  @IsString() @MinLength(20) idToken!: string;
+  @IsString() @MinLength(16) nonce!: string;
+}
 export class DevelopmentLoginDto {
   @IsString() @MinLength(3) profileId!: string;
 }

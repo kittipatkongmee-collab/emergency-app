@@ -1,8 +1,9 @@
 <h1 class="page-title">จัดการผู้ใช้งาน</h1>
 @if (canCreate()) {
-  <button type="button" class="btn-primary add-staff-button" (click)="openCreateDialog()">
-    เพิ่มเจ้าหน้าที่
-  </button>
+  <div class="page-actions">
+    <button type="button" class="btn-primary" (click)="openCreateDialog()">เพิ่มเจ้าหน้าที่</button>
+    <button type="button" class="btn-outline" (click)="openPositionDialog()">ตำแหน่ง</button>
+  </div>
 }
 @if (message() && !createDialogOpen() && !editDialogOpen()) {
   <p class="page-message" role="status">{{ message() }}</p>
@@ -34,22 +35,24 @@
       </header>
       <form class="staff-form" [formGroup]="form" (ngSubmit)="create()">
         <div class="field">
-          <label for="staff-username">ชื่อผู้ใช้</label>
-          <input id="staff-username" autocomplete="username" formControlName="username" />
-        </div>
-        <div class="field">
           <label for="staff-name">ชื่อ-นามสกุล</label>
           <input id="staff-name" autocomplete="name" formControlName="fullName" />
         </div>
         <div class="field">
-          <label for="staff-role">บทบาท</label>
-          <select id="staff-role" formControlName="role">
-            <option value="OFFICER">เจ้าหน้าที่ปฏิบัติการ</option>
-            @if (auth.user()?.role === 'SUPER_ADMIN') {
-              <option value="SUPERVISOR">หัวหน้าศูนย์</option>
-              <option value="VIEWER">ผู้ดูข้อมูล</option>
+          <label for="staff-position">ตำแหน่ง</label>
+          <select id="staff-position" formControlName="positionId">
+            <option value="" disabled>เลือกตำแหน่ง</option>
+            @for (position of positions(); track position.id) {
+              <option [value]="position.id">{{ position.name }}</option>
             }
           </select>
+          @if (!positions().length) {
+            <small class="field-hint">กรุณาเพิ่มตำแหน่งก่อนเพิ่มเจ้าหน้าที่</small>
+          }
+        </div>
+        <div class="field">
+          <label for="staff-username">ชื่อผู้ใช้</label>
+          <input id="staff-username" autocomplete="username" formControlName="username" />
         </div>
         <div class="field">
           <label for="staff-password">รหัสผ่านเริ่มต้น</label>
@@ -77,6 +80,63 @@
           </button>
         </footer>
       </form>
+    </section>
+  </div>
+}
+
+@if (canCreate() && positionDialogOpen()) {
+  <div class="modal-backdrop" (click)="closePositionDialog()">
+    <section
+      class="card staff-dialog position-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="position-dialog-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="dialog-header">
+        <div>
+          <h2 id="position-dialog-title">จัดการตำแหน่ง</h2>
+          <p class="muted">เพิ่มชื่อตำแหน่งสำหรับกำหนดให้เจ้าหน้าที่</p>
+        </div>
+        <button
+          type="button"
+          class="dialog-close"
+          aria-label="ปิดหน้าต่างจัดการตำแหน่ง"
+          [disabled]="positionSaving()"
+          (click)="closePositionDialog()"
+        >
+          ×
+        </button>
+      </header>
+      <form class="position-form" [formGroup]="positionForm" (ngSubmit)="createPosition()">
+        <div class="field">
+          <label for="position-name">ชื่อตำแหน่ง</label>
+          <input
+            id="position-name"
+            autocomplete="off"
+            formControlName="name"
+            placeholder="เช่น เจ้าหน้าที่ประสานงาน"
+          />
+        </div>
+        <button class="btn-primary" type="submit" [disabled]="positionSaving()">
+          {{ positionSaving() ? 'กำลังบันทึก…' : 'บันทึกตำแหน่ง' }}
+        </button>
+      </form>
+      @if (positionMessage()) {
+        <p class="form-message" role="status">{{ positionMessage() }}</p>
+      }
+      <div class="position-list">
+        <h3>ตำแหน่งที่บันทึกแล้ว</h3>
+        @if (positions().length) {
+          <ul>
+            @for (position of positions(); track position.id) {
+              <li>{{ position.name }}</li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">ยังไม่มีข้อมูลตำแหน่ง</p>
+        }
+      </div>
     </section>
   </div>
 }
@@ -119,13 +179,11 @@
           <input id="edit-staff-phone" autocomplete="tel" formControlName="phone" />
         </div>
         <div class="field">
-          <label for="edit-staff-role">บทบาท</label>
-          <select id="edit-staff-role" formControlName="role">
-            <option value="OFFICER">เจ้าหน้าที่ปฏิบัติการ</option>
-            @if (auth.user()?.role === 'SUPER_ADMIN') {
-              <option value="SUPERVISOR">หัวหน้าศูนย์</option>
-              <option value="VIEWER">ผู้ดูข้อมูล</option>
-              <option value="SUPER_ADMIN">ผู้ดูแลระบบสูงสุด</option>
+          <label for="edit-staff-position">ตำแหน่ง</label>
+          <select id="edit-staff-position" formControlName="positionId">
+            <option value="" disabled>เลือกตำแหน่ง</option>
+            @for (position of positions(); track position.id) {
+              <option [value]="position.id">{{ position.name }}</option>
             }
           </select>
         </div>
@@ -219,7 +277,7 @@
         <tr>
           <th>ชื่อผู้ใช้</th>
           <th>ชื่อ-นามสกุล</th>
-          <th>บทบาท</th>
+          <th>ตำแหน่ง</th>
           <th>สถานะ</th>
           <th class="actions-heading">จัดการ</th>
         </tr>
@@ -231,25 +289,41 @@
             <td>
               <b>{{ user.fullName }}</b>
             </td>
-            <td>{{ roleLabel(user.role) }}</td>
+            <td>{{ user.position?.name || roleLabel(user.role) }}</td>
             <td>
-              <span class="status" [class.inactive]="user.status !== 'ACTIVE'">
+              <span class="status user-status" [attr.data-user-status]="user.status">
                 {{ statusLabel(user.status) }}
               </span>
             </td>
             <td>
               @if (canManage(user)) {
                 <div class="user-actions">
-                  <button type="button" class="text-action" (click)="openEditDialog(user)">
-                    แก้ไข
+                  <button
+                    type="button"
+                    class="icon-action edit-action"
+                    [attr.aria-label]="'แก้ไขข้อมูล ' + user.fullName"
+                    title="แก้ไข"
+                    (click)="openEditDialog(user)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M4 16.5V20h3.5L18.8 8.7l-3.5-3.5L4 16.5Zm17-10.6a1 1 0 0 0 0-1.4l-1.5-1.5a1 1 0 0 0-1.4 0l-1.6 1.6L20 8.1 21 5.9Z"
+                      />
+                    </svg>
                   </button>
                   <button
                     type="button"
-                    class="text-action delete-action"
+                    class="icon-action delete-action"
+                    [attr.aria-label]="'ลบบัญชี ' + user.fullName"
+                    title="ลบ"
                     [disabled]="user.id === auth.user()?.id"
                     (click)="requestDelete(user)"
                   >
-                    ลบ
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M7 21a2 2 0 0 1-2-2V7h14v12a2 2 0 0 1-2 2H7Zm10-17h-3.5l-1-1h-5l-1 1H3v2h18V4h-4Zm-8 5v9h2V9H9Zm4 0v9h2V9h-2Z"
+                      />
+                    </svg>
                   </button>
                   <button
                     type="button"

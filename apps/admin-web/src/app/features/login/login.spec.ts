@@ -22,7 +22,7 @@ describe('LoginComponent', () => {
     expect(logo?.getAttribute('src')).toBe('images/police-aviation-logo-transparent.png');
     expect(logo?.getAttribute('alt')).toBe('โลโก้กองบินตำรวจ');
     expect(element.querySelector('.brand .eyebrow')?.textContent?.trim()).toBe('กองบินตำรวจ');
-    expect(element.querySelector('.officer-icon')).toBeNull();
+    expect(element.querySelector('.officer-icon svg')).not.toBeNull();
     expect(element.querySelector('.smart-card')).toBeNull();
     expect(element.querySelector('.help')).toBeNull();
   });

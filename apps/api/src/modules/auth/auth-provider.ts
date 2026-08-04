@@ -86,3 +86,83 @@ export class FacebookAuthProvider implements CitizenAuthProvider {
     };
   }
 }
+
+@Injectable()
+export class LineAuthProvider implements CitizenAuthProvider {
+  async authenticate(
+    idToken: string,
+    nonce?: string,
+  ): Promise<CitizenIdentityProfile> {
+    if (
+      process.env.LINE_LOGIN_ENABLED !== 'true' ||
+      !process.env.LINE_CHANNEL_ID
+    ) {
+      throw new ServiceUnavailableException({
+        code: 'LINE_LOGIN_NOT_CONFIGURED',
+        message: 'ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย LINE',
+      });
+    }
+
+    const body = new URLSearchParams({
+      id_token: idToken,
+      client_id: process.env.LINE_CHANNEL_ID,
+    });
+    if (nonce) body.set('nonce', nonce);
+
+    let response: Response;
+    try {
+      response = await fetch('https://api.line.me/oauth2/v2.1/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      throw new ServiceUnavailableException({
+        code: 'LINE_SERVICE_UNAVAILABLE',
+        message: 'ไม่สามารถตรวจสอบบัญชี LINE ได้ในขณะนี้',
+      });
+    }
+
+    if (!response.ok) {
+      throw new UnauthorizedException({
+        code: 'LINE_TOKEN_INVALID',
+        message: 'ข้อมูลเข้าสู่ระบบ LINE ไม่ถูกต้องหรือหมดอายุ',
+      });
+    }
+
+    const profile: unknown = await response.json().catch(() => null);
+    if (
+      !profile ||
+      typeof profile !== 'object' ||
+      !('sub' in profile) ||
+      typeof profile.sub !== 'string' ||
+      !profile.sub ||
+      !('name' in profile) ||
+      typeof profile.name !== 'string' ||
+      !profile.name ||
+      (nonce && (!('nonce' in profile) || profile.nonce !== nonce))
+    ) {
+      throw new UnauthorizedException({
+        code: 'LINE_TOKEN_INVALID',
+        message: 'ข้อมูลบัญชี LINE ไม่ครบถ้วนหรือไม่ตรงกับคำขอ',
+      });
+    }
+
+    return {
+      // The generated Prisma client learns this enum value after the migration
+      // and the next `prisma generate`; the string remains the database value.
+      provider: 'LINE' as AuthenticationProvider,
+      providerUserId: profile.sub,
+      fullName: profile.name,
+      email:
+        'email' in profile && typeof profile.email === 'string'
+          ? profile.email
+          : undefined,
+      profileImageUrl:
+        'picture' in profile && typeof profile.picture === 'string'
+          ? profile.picture
+          : undefined,
+    };
+  }
+}

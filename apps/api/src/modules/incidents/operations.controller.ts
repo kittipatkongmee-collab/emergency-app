@@ -17,12 +17,15 @@ import argon2 from 'argon2';
 import { Type } from 'class-transformer';
 import {
   IsEmail,
+  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
+  Matches,
   Min,
   MinLength,
 } from 'class-validator';
@@ -37,13 +40,54 @@ class PaginationDto {
   @IsOptional() @IsString() @MaxLength(100) keyword?: string;
 }
 
+class DashboardDateRangeDto {
+  @IsOptional()
+  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  dateFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  dateTo?: string;
+}
+
+function dashboardDateFilter(
+  query: DashboardDateRangeDto,
+): Prisma.DateTimeFilter | undefined {
+  const from = query.dateFrom
+    ? new Date(`${query.dateFrom}T00:00:00+07:00`)
+    : undefined;
+  const to = query.dateTo
+    ? new Date(`${query.dateTo}T00:00:00+07:00`)
+    : undefined;
+
+  if (from && to && from > to) {
+    throw new BadRequestException({
+      code: 'INVALID_DASHBOARD_DATE_RANGE',
+      message: 'วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด',
+    });
+  }
+
+  if (to) {
+    to.setUTCDate(to.getUTCDate() + 1);
+  }
+
+  return from || to ? { gte: from, lt: to } : undefined;
+}
+
 class AdminUserDto {
   @IsString() @MinLength(3) @MaxLength(100) username!: string;
   @IsString() @MinLength(2) @MaxLength(191) fullName!: string;
   @IsOptional() @IsEmail() email?: string;
   @IsOptional() @IsString() @MaxLength(32) phone?: string;
-  @IsEnum(AdminRole) role!: AdminRole;
+  @IsOptional() @IsEnum(AdminRole) role?: AdminRole;
+  @IsUUID() positionId!: string;
   @IsString() @MinLength(12) @MaxLength(128) password!: string;
+}
+
+class StaffPositionDto {
+  @IsString() @MinLength(2) @MaxLength(100) name!: string;
 }
 
 class RegisterDeviceDto {
@@ -56,6 +100,7 @@ class UpdateAdminUserDto {
   @IsOptional() @IsEmail() email?: string;
   @IsOptional() @IsString() @MaxLength(32) phone?: string;
   @IsOptional() @IsEnum(AdminRole) role?: AdminRole;
+  @IsOptional() @IsUUID() positionId?: string;
 }
 
 class UpdateUserStatusDto {
@@ -79,7 +124,11 @@ export class AdminOperationsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get('dashboard/summary')
-  async summary() {
+  async summary(@Query() query: DashboardDateRangeDto) {
+    const reportedAt = dashboardDateFilter(query);
+    const rangeWhere: Prisma.IncidentWhereInput = reportedAt
+      ? { reportedAt }
+      : {};
     const now = new Date();
     const today = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -98,14 +147,21 @@ export class AdminOperationsController {
       thisWeek,
       previousWeekCount,
     ] = await this.prisma.$transaction([
-      this.prisma.incident.count(),
-      this.prisma.incident.count({ where: { status: 'RECEIVED' } }),
+      this.prisma.incident.count({ where: rangeWhere }),
       this.prisma.incident.count({
-        where: { status: { in: ['FORWARDED', 'INSPECTING', 'IN_PROGRESS'] } },
+        where: { ...rangeWhere, status: 'RECEIVED' },
       }),
-      this.prisma.incident.count({ where: { status: 'COMPLETED' } }),
       this.prisma.incident.count({
-        where: { status: { in: ['CANCELLED', 'REJECTED'] } },
+        where: {
+          ...rangeWhere,
+          status: { in: ['FORWARDED', 'INSPECTING', 'IN_PROGRESS'] },
+        },
+      }),
+      this.prisma.incident.count({
+        where: { ...rangeWhere, status: 'COMPLETED' },
+      }),
+      this.prisma.incident.count({
+        where: { ...rangeWhere, status: { in: ['CANCELLED', 'REJECTED'] } },
       }),
       this.prisma.incident.count({ where: { reportedAt: { gte: today } } }),
       this.prisma.incident.count({ where: { reportedAt: { gte: week } } }),
@@ -137,8 +193,10 @@ export class AdminOperationsController {
   }
 
   @Get('dashboard/recent-incidents')
-  recent() {
+  recent(@Query() query: DashboardDateRangeDto) {
+    const reportedAt = dashboardDateFilter(query);
     return this.prisma.incident.findMany({
+      where: reportedAt ? { reportedAt } : undefined,
       take: 5,
       orderBy: { reportedAt: 'desc' },
       include: {
@@ -197,6 +255,7 @@ export class AdminOperationsController {
       this.prisma.adminUser.findMany({
         where,
         omit: { passwordHash: true },
+        include: { position: true },
         orderBy: { fullName: 'asc' },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
@@ -214,18 +273,62 @@ export class AdminOperationsController {
     };
   }
 
+  @Get('staff-positions')
+  @Roles(AdminRole.SUPER_ADMIN, AdminRole.SUPERVISOR)
+  staffPositions() {
+    return this.prisma.staffPosition.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  @Post('staff-positions')
+  @Roles(AdminRole.SUPER_ADMIN, AdminRole.SUPERVISOR)
+  async createStaffPosition(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: StaffPositionDto,
+  ) {
+    const name = dto.name.trim();
+    if (name.length < 2)
+      throw new BadRequestException('กรุณาระบุชื่อตำแหน่งอย่างน้อย 2 ตัวอักษร');
+    const existing = await this.prisma.staffPosition.findUnique({
+      where: { name },
+    });
+    if (existing) throw new BadRequestException('มีชื่อตำแหน่งนี้อยู่แล้ว');
+    return this.prisma.$transaction(async (tx) => {
+      const position = await tx.staffPosition.create({ data: { name } });
+      await tx.auditLog.create({
+        data: {
+          adminUserId: req.user.sub,
+          action: 'STAFF_POSITION_CREATED',
+          entityType: 'StaffPosition',
+          entityId: position.id,
+          newValue: { name: position.name },
+        },
+      });
+      return position;
+    });
+  }
+
   @Post('users')
   @Roles(AdminRole.SUPER_ADMIN, AdminRole.SUPERVISOR)
   async createUser(
     @Req() req: AuthenticatedRequest,
     @Body() dto: AdminUserDto,
   ) {
-    this.assertManageableRole(req, dto.role);
-    const { password, ...data } = dto;
+    const role = dto.role ?? AdminRole.OFFICER;
+    this.assertManageableRole(req, role);
+    await this.assertPositionExists(dto.positionId);
+    const { password } = dto;
+    const data = {
+      username: dto.username,
+      fullName: dto.fullName,
+      email: dto.email,
+      phone: dto.phone,
+      positionId: dto.positionId,
+    };
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.adminUser.create({
-        data: { ...data, passwordHash: await argon2.hash(password) },
+        data: { ...data, role, passwordHash: await argon2.hash(password) },
         omit: { passwordHash: true },
+        include: { position: true },
       });
       await tx.auditLog.create({
         data: {
@@ -233,7 +336,11 @@ export class AdminOperationsController {
           action: 'ADMIN_CREATED',
           entityType: 'AdminUser',
           entityId: user.id,
-          newValue: { username: user.username, role: user.role },
+          newValue: {
+            username: user.username,
+            role: user.role,
+            positionId: user.positionId,
+          },
         },
       });
       return user;
@@ -246,6 +353,7 @@ export class AdminOperationsController {
     const user = await this.prisma.adminUser.findUnique({
       where: { id },
       omit: { passwordHash: true },
+      include: { position: true },
     });
     if (!user) throw new NotFoundException('ไม่พบบัญชีเจ้าหน้าที่');
     this.assertManageableRole(req, user.role, true);
@@ -263,11 +371,13 @@ export class AdminOperationsController {
     if (!current) throw new NotFoundException('ไม่พบบัญชีเจ้าหน้าที่');
     this.assertManageableRole(req, current.role);
     if (dto.role) this.assertManageableRole(req, dto.role);
+    if (dto.positionId) await this.assertPositionExists(dto.positionId);
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.adminUser.update({
         where: { id },
         data: dto,
         omit: { passwordHash: true },
+        include: { position: true },
       });
       await tx.auditLog.create({
         data: {
@@ -275,8 +385,16 @@ export class AdminOperationsController {
           action: 'ADMIN_UPDATED',
           entityType: 'AdminUser',
           entityId: id,
-          oldValue: { role: current.role, status: current.status },
-          newValue: { role: user.role, status: user.status },
+          oldValue: {
+            role: current.role,
+            status: current.status,
+            positionId: current.positionId,
+          },
+          newValue: {
+            role: user.role,
+            status: user.status,
+            positionId: user.positionId,
+          },
         },
       });
       return user;
@@ -486,6 +604,14 @@ export class AdminOperationsController {
       });
       return updated;
     });
+  }
+
+  private async assertPositionExists(positionId: string) {
+    const position = await this.prisma.staffPosition.findUnique({
+      where: { id: positionId },
+      select: { id: true },
+    });
+    if (!position) throw new BadRequestException('ไม่พบตำแหน่งที่เลือก');
   }
 
   private assertManageableRole(

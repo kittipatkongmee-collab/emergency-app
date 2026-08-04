@@ -1,7 +1,7 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   inject,
   OnDestroy,
   OnInit,
@@ -15,10 +15,16 @@ import { AuthService } from '../../core/auth.service';
 import { Incident } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { environment } from '../../../environments/environment';
+import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
+
+interface ImagePreview {
+  url: string;
+  alt: string;
+}
 
 @Component({
   standalone: true,
-  imports: [DatePipe],
+  imports: [ThaiBuddhistDatePipe],
   templateUrl: './incident-detail.html',
   styleUrl: './incident-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +36,7 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
   readonly error = signal('');
   readonly saving = signal(false);
   readonly confirmation = signal<'accept' | 'complete' | null>(null);
+  readonly imagePreview = signal<ImagePreview | null>(null);
   readonly id = this.route.snapshot.paramMap.get('id')!;
   private cleanup?: () => void;
 
@@ -102,6 +109,23 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
     return `${environment.mediaBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   }
 
+  openImagePreview(imageUrl: string, originalName: string) {
+    this.imagePreview.set({ url: this.mediaUrl(imageUrl), alt: originalName });
+  }
+
+  closeImagePreview() {
+    this.imagePreview.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  closeOverlay() {
+    if (this.imagePreview()) {
+      this.closeImagePreview();
+      return;
+    }
+    this.closeConfirmation();
+  }
+
   typeLabel(type: string): string {
     return (
       {
@@ -114,7 +138,7 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
   statusLabel(status: string): string {
     return (
       {
-        RECEIVED: 'รับแจ้งแล้ว',
+        RECEIVED: 'รอดำเนินการ',
         FORWARDED: 'ส่งต่อเจ้าหน้าที่',
         INSPECTING: 'กำลังตรวจสอบ',
         IN_PROGRESS: 'กำลังดำเนินการ',

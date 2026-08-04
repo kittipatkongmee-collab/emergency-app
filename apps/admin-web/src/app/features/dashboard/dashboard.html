@@ -5,6 +5,32 @@
   </div>
 </section>
 
+<form class="card dashboard-date-filters" [formGroup]="filters" (ngSubmit)="load()">
+  <div class="field date-field">
+    <label for="dashboard-date-from">ตั้งแต่วันที่</label>
+    <input
+      id="dashboard-date-from"
+      type="text"
+      formControlName="dateFrom"
+      appBuddhistDatepicker
+      placeholder="วว/ดด/ปปปป (พ.ศ.)"
+    />
+  </div>
+  <div class="field date-field">
+    <label for="dashboard-date-to">ถึงวันที่</label>
+    <input
+      id="dashboard-date-to"
+      type="text"
+      formControlName="dateTo"
+      appBuddhistDatepicker
+      placeholder="วว/ดด/ปปปป (พ.ศ.)"
+    />
+  </div>
+  <div class="dashboard-date-actions">
+    <button class="btn-primary" type="submit">แสดงข้อมูล</button>
+  </div>
+</form>
+
 @if (loading()) {
   <div class="summary-grid">
     @for (i of cards; track i[0]) {
@@ -32,7 +58,11 @@
             <strong>{{ value(card[0]) }}</strong> <em>เหตุการณ์</em>
           </p>
           @if (index === 0) {
-            <i>↑ {{ value('percentageChange') }}% จากสัปดาห์ที่ผ่านมา</i>
+            @if (hasActiveDateRange()) {
+              <i>ข้อมูลตามช่วงวันที่ที่เลือก</i>
+            } @else {
+              <i>↑ {{ value('percentageChange') }}% จากสัปดาห์ที่ผ่านมา</i>
+            }
           } @else {
             <i>ข้อมูลปัจจุบันจากระบบ</i>
           }
@@ -46,7 +76,6 @@
       <header>
         <div>
           <h2>รายการแจ้งเหตุล่าสุด</h2>
-          <p>ข้อมูลเหตุการณ์ล่าสุดจากระบบ</p>
         </div>
         <a routerLink="/incidents">ดูทั้งหมด →</a>
       </header>
@@ -86,7 +115,7 @@
             <tbody>
               @for (item of incidents(); track item.id; let first = $first) {
                 <tr [class.selected]="first">
-                  <td>{{ item.reportedAt | date: 'dd MMM y HH:mm' : '' : 'th' }}</td>
+                  <td>{{ item.reportedAt | thaiBuddhistDate }}</td>
                   <td>
                     <b>{{ item.reporterName }}</b>
                   </td>

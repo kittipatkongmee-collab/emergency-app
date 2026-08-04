@@ -40,7 +40,14 @@ describe('ShellComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
 
     expect(element.querySelector('.nav-badge')?.textContent?.trim()).toBe('3');
-    expect(element.querySelector('.header-notification')?.textContent).toContain('🔔');
+    expect(element.querySelectorAll('.nav-icon svg').length).toBe(6);
+    expect(element.textContent).not.toContain('ตั้งค่าระบบ');
+    expect(element.querySelector('.user b')?.textContent?.trim()).toBe('ผู้ดูแลระบบ');
+    expect(element.querySelector('.user > span')).toBeNull();
+    expect(element.querySelector('.user i')).toBeNull();
+    const headerNotification = element.querySelector<HTMLElement>('.header-notification');
+    expect(headerNotification?.querySelector('svg')).not.toBeNull();
+    expect(getComputedStyle(headerNotification!).color).toBe('rgb(207, 0, 26)');
     expect(realtime.on).toHaveBeenCalledWith('notification.read', jasmine.any(Function));
     expect(realtime.on).toHaveBeenCalledWith('notification.deleted', jasmine.any(Function));
   });

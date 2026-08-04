@@ -9,17 +9,20 @@ import {
   IsLatitude,
   IsLongitude,
   IsOptional,
-  IsPhoneNumber,
   IsString,
   IsUUID,
   Length,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
 
 export class CreateIncidentDto {
   @IsString() @Length(2, 120) reporterName!: string;
-  @IsPhoneNumber('TH') reporterPhone!: string;
+  @Matches(/^0\d{8,9}$/, {
+    message: 'หมายเลขโทรศัพท์ต้องขึ้นต้นด้วย 0 และมี 9-10 หลัก',
+  })
+  reporterPhone!: string;
   @IsEnum(IncidentType) type!: IncidentType;
   @IsString() @Length(10, 3000) description!: string;
   @IsLatitude() latitude!: string;

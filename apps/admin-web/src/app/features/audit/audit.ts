@@ -1,7 +1,7 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, signal } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { Page, Pagination } from '../../core/models';
+import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
 
 interface AuditItem {
   id: string;
@@ -16,7 +16,7 @@ interface AuditItem {
 
 @Component({
   standalone: true,
-  imports: [DatePipe],
+  imports: [ThaiBuddhistDatePipe],
   templateUrl: './audit.html',
   styleUrl: './audit.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

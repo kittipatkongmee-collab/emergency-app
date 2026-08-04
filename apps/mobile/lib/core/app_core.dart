@@ -33,6 +33,18 @@ class Environment {
     'FACEBOOK_LOGIN_ENABLED',
     defaultValue: false,
   );
+  static const lineLoginEnabled = bool.fromEnvironment(
+    'LINE_LOGIN_ENABLED',
+    defaultValue: false,
+  );
+  static const lineChannelId = String.fromEnvironment('LINE_CHANNEL_ID');
+  static const lineEmailScopeEnabled = bool.fromEnvironment(
+    'LINE_EMAIL_SCOPE_ENABLED',
+    defaultValue: false,
+  );
+
+  static bool get lineLoginConfigured =>
+      lineLoginEnabled && lineChannelId.trim().isNotEmpty;
 }
 
 class AppTheme {
@@ -190,6 +202,10 @@ class ApiClient {
       'TOKEN_REVOKED': 'เซสชันถูกยกเลิก กรุณาเข้าสู่ระบบใหม่',
       'FACEBOOK_LOGIN_NOT_CONFIGURED':
           'ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Facebook',
+      'LINE_LOGIN_NOT_CONFIGURED': 'ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย LINE',
+      'LINE_TOKEN_INVALID': 'ข้อมูลเข้าสู่ระบบ LINE ไม่ถูกต้องหรือหมดอายุ',
+      'LINE_SERVICE_UNAVAILABLE':
+          'ไม่สามารถตรวจสอบบัญชี LINE ได้ในขณะนี้ กรุณาลองใหม่',
       'INCIDENT_NOT_FOUND': 'ไม่พบข้อมูลเหตุการณ์',
       'INCIDENT_ACCESS_DENIED': 'คุณไม่มีสิทธิ์เปิดเหตุการณ์นี้',
       'FILE_TOO_LARGE': 'รูปภาพมีขนาดใหญ่เกินกำหนด',
@@ -224,26 +240,26 @@ class GradientButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.iconWidget,
+    this.colors = const [Color(0xFFB10017), Color(0xFF680008)],
+    this.shadowColor = const Color(0x308F0010),
     this.busy = false,
     super.key,
   });
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final Widget? iconWidget;
+  final List<Color> colors;
+  final Color shadowColor;
   final bool busy;
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFFB10017), Color(0xFF680008)],
-      ),
+      gradient: LinearGradient(colors: colors),
       borderRadius: BorderRadius.circular(14),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x308F0010),
-          blurRadius: 14,
-          offset: Offset(0, 7),
-        ),
+      boxShadow: [
+        BoxShadow(color: shadowColor, blurRadius: 14, offset: Offset(0, 7)),
       ],
     ),
     child: FilledButton.icon(
@@ -260,8 +276,15 @@ class GradientButton extends StatelessWidget {
                 color: Colors.white,
               ),
             )
-          : Icon(icon ?? Icons.arrow_forward_rounded),
-      label: Text(busy ? 'กำลังดำเนินการ…' : label),
+          : iconWidget ?? Icon(icon ?? Icons.arrow_forward_rounded),
+      label: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          busy ? 'กำลังดำเนินการ…' : label,
+          maxLines: 1,
+          softWrap: false,
+        ),
+      ),
     ),
   );
 }

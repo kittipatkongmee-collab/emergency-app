@@ -1,15 +1,17 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Incident, Summary } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
 import { environment } from '../../../environments/environment';
+import { BuddhistDatepickerDirective } from '../../shared/buddhist-datepicker.directive';
+import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
 
 @Component({
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [BuddhistDatepickerDirective, ReactiveFormsModule, RouterLink, ThaiBuddhistDatePipe],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +21,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly error = signal('');
   readonly summary = signal<Summary | null>(null);
   readonly incidents = signal<Incident[]>([]);
+  readonly filters = new FormGroup({
+    dateFrom: new FormControl('', { nonNullable: true }),
+    dateTo: new FormControl('', { nonNullable: true }),
+  });
   readonly cards = [
     ['total', '▣', 'แจ้งเหตุทั้งหมด'],
     ['waiting', '◷', 'รอการดำเนินการ'],
@@ -45,11 +51,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   load(showLoading = true) {
+    const query = this.filters.getRawValue();
+    if (query.dateFrom && query.dateTo && query.dateFrom > query.dateTo) {
+      this.error.set('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด');
+      this.loading.set(false);
+      return;
+    }
     if (showLoading) this.loading.set(true);
     this.error.set('');
+    const dateQuery = Object.fromEntries(Object.entries(query).filter(([, value]) => value));
     forkJoin({
-      summary: this.api.get<Summary>('admin/dashboard/summary'),
-      incidents: this.api.get<Incident[]>('admin/dashboard/recent-incidents'),
+      summary: this.api.get<Summary>('admin/dashboard/summary', dateQuery),
+      incidents: this.api.get<Incident[]>('admin/dashboard/recent-incidents', dateQuery),
     }).subscribe({
       next: (result) => {
         this.summary.set(result.summary);
@@ -63,6 +76,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  hasActiveDateRange() {
+    const { dateFrom, dateTo } = this.filters.getRawValue();
+    return Boolean(dateFrom || dateTo);
+  }
+
   value(key: keyof Summary) {
     return this.summary()?.[key] ?? 0;
   }
@@ -70,7 +88,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   statusLabel(status: string) {
     return (
       {
-        RECEIVED: 'รับแจ้งแล้ว',
+        RECEIVED: 'รอดำเนินการ',
         FORWARDED: 'ส่งต่อเจ้าหน้าที่',
         INSPECTING: 'กำลังตรวจสอบ',
         IN_PROGRESS: 'กำลังดำเนินการ',
