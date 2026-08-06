@@ -11,7 +11,7 @@
 		<string>th</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>แจ้งเหตุ กองบินตำรวจ</string>
+	<string>หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

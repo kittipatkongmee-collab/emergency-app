@@ -51,6 +51,7 @@ const aircraftInformationCatalog = <AircraftInformation>[
       'assets/images/aircraft/bell-429/gallery-04.jpg',
       'assets/images/aircraft/bell-429/gallery-05.jpg',
     ],
+    videoAsset: 'assets/videos/aircraft/bell-429/bell-429.mp4',
     specificationSections: [
       AircraftSpecificationSection(
         title: 'Exterior',
@@ -124,11 +125,15 @@ const aircraftInformationCatalog = <AircraftInformation>[
     thumbnailAsset: 'assets/images/bell-412-ep.jpg',
     galleryAssets: [
       'assets/images/aircraft/bell-412/gallery-01.jpg',
-      'assets/images/aircraft/bell-412/gallery-02.jpg',
-      'assets/images/aircraft/bell-412/gallery-03.jpg',
       'assets/images/aircraft/bell-412/gallery-04.jpg',
       'assets/images/aircraft/bell-412/gallery-05.jpg',
       'assets/images/aircraft/bell-412/gallery-06.jpg',
+      'assets/images/aircraft/bell-412/gallery-07.jpg',
+      'assets/images/aircraft/bell-412/gallery-08.jpg',
+      'assets/images/aircraft/bell-412/gallery-09.jpg',
+      'assets/images/aircraft/bell-412/gallery-10.jpg',
+      'assets/images/aircraft/bell-412/gallery-11.jpg',
+      'assets/images/aircraft/bell-412/gallery-12.jpg',
     ],
     videoAsset: 'assets/videos/aircraft/bell-412/trat.mp4',
     specificationSections: [
@@ -578,10 +583,17 @@ class _AircraftVideoPlayerState extends State<_AircraftVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    controller = VideoPlayerController.asset(widget.assetPath)
-      ..initialize().then((_) {
-        if (mounted) setState(() {});
-      });
+    controller =
+        VideoPlayerController.asset(
+            widget.assetPath,
+            // Rendering through the native view avoids repeated SurfaceTexture
+            // dequeue failures on Android devices/emulators while long local videos
+            // are playing.
+            viewType: VideoViewType.platformView,
+          )
+          ..initialize().then((_) {
+            if (mounted) setState(() {});
+          });
   }
 
   @override

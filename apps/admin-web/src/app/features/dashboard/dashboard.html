@@ -1,6 +1,5 @@
 <section class="heading">
   <div>
-    <p class="eyebrow">ศูนย์บัญชาการเหตุการณ์</p>
     <h1 class="page-title">แดชบอร์ดแจ้งเหตุ</h1>
   </div>
 </section>
@@ -51,11 +50,45 @@
   <div class="summary-grid">
     @for (card of cards; track card[0]; let index = $index) {
       <article class="card metric">
-        <span class="metric-icon">{{ card[1] }}</span>
+        <span
+          class="metric-icon"
+          [attr.data-metric]="card[0]"
+          [attr.data-icon]="card[1]"
+          aria-hidden="true"
+        >
+          @switch (card[1]) {
+            @case ('report') {
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M7 3.75h7.3L18 7.45v12.8H7z" />
+                <path class="icon-detail" d="M14 3.75v4h4M9.5 11.25h6M9.5 14.25h4.25" />
+                <path class="icon-accent" d="M4 7.25v13.5h10" />
+              </svg>
+            }
+            @case ('hourglass') {
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M7 3.75h10M7 20.25h10M8 3.75c0 3.4 1.3 5.1 4 8.25-2.7 3.15-4 4.85-4 8.25M16 3.75c0 3.4-1.3 5.1-4 8.25 2.7 3.15 4 4.85 4 8.25" />
+                <path class="icon-detail" d="M9.6 7.75h4.8M9.75 17.2 12 15l2.25 2.2" />
+              </svg>
+            }
+            @case ('activity') {
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M3.5 12h3.3l2.1-4.5 3.35 9 2.2-5H20.5" />
+                <circle class="icon-accent" cx="12" cy="12" r="8.25" />
+                <circle class="icon-detail" cx="12" cy="12" r="1.25" />
+              </svg>
+            }
+            @default {
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 3.25c2.15 1.45 4.35 2.1 6.5 2.35v5.15c0 4.35-2.55 7.75-6.5 10-3.95-2.25-6.5-5.65-6.5-10V5.6C7.65 5.35 9.85 4.7 12 3.25Z" />
+                <path class="icon-detail" d="m8.65 11.85 2.25 2.25 4.7-5" />
+              </svg>
+            }
+          }
+        </span>
         <div class="metric-body">
           <small>{{ card[2] }}</small>
           <p>
-            <strong>{{ value(card[0]) }}</strong> <em>เหตุการณ์</em>
+            <strong>{{ value(card[0]) }}</strong><em>เหตุการณ์</em>
           </p>
           @if (index === 0) {
             @if (hasActiveDateRange()) {

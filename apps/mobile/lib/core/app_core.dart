@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+class AppCopy {
+  static const unitName =
+      'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)';
+  static const unitNameTwoLine =
+      'หน่วยค้นหาและช่วยเหลืออากาศยาน\nและเรือที่ประสบภัย (SRU)';
+}
+
 class Environment {
   static const name = String.fromEnvironment(
     'APP_ENV',
@@ -300,7 +307,8 @@ class PoliceAviationLogo extends StatelessWidget {
       'assets/images/police-aviation-logo.png',
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
-      semanticLabel: 'โลโก้กองบินตำรวจ',
+      semanticLabel:
+          'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
     ),
   );
 }

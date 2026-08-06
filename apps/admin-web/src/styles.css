@@ -16,6 +16,11 @@
   --border-color: #e7dfe0;
   --radius: 18px;
   --shadow: 0 8px 30px rgba(72, 0, 9, 0.08);
+  --content-gutter: clamp(14px, 2.4vw, 34px);
+  --text-xs: clamp(0.72rem, 0.7rem + 0.08vw, 0.78rem);
+  --text-sm: clamp(0.82rem, 0.79rem + 0.12vw, 0.9rem);
+  --text-md: clamp(0.95rem, 0.91rem + 0.14vw, 1rem);
+  --text-lg: clamp(1.08rem, 1rem + 0.32vw, 1.25rem);
 }
 * {
   box-sizing: border-box;
@@ -27,12 +32,17 @@ body {
 }
 html {
   font-family: 'Sarabun', system-ui, sans-serif;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 body {
   position: relative;
   font-family: inherit;
   color: var(--text-primary);
   background: var(--background);
+  font-size: var(--text-md);
+  line-height: 1.55;
 }
 button,
 input,
@@ -48,6 +58,7 @@ option,
 }
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 a {
   color: inherit;
@@ -56,7 +67,9 @@ a {
 .page-title {
   margin: 0;
   color: var(--primary-dark);
-  font-size: clamp(1.45rem, 2vw, 2rem);
+  font-size: clamp(1.4rem, 1.18rem + 0.9vw, 2rem);
+  line-height: 1.25;
+  text-wrap: balance;
 }
 .eyebrow {
   margin: 0 0 4px;
@@ -74,6 +87,12 @@ a {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+.btn-primary,
+.btn-outline {
+  min-height: 44px;
+  line-height: 1.25;
+  touch-action: manipulation;
 }
 .btn-primary {
   border: 0;
@@ -119,12 +138,26 @@ a {
   color: var(--text-primary);
   background: white;
   outline: none;
+  font-size: max(1rem, 16px);
 }
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(143, 0, 16, 0.1);
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid rgba(143, 0, 16, 0.25);
+  outline-offset: 2px;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 .state {
   display: grid;
@@ -219,6 +252,7 @@ body > .ng-dropdown-panel {
 .incident-map-marker {
   background: transparent;
 }
+
 .incident-map-marker > span {
   display: block;
   width: 28px;
@@ -345,4 +379,77 @@ body .status.status[data-status] {
 .flatpickr-day:hover {
   border-color: var(--primary-light);
   background: var(--primary-light);
+}
+
+@media (max-width: 900px) {
+  :root {
+    --radius: 16px;
+    --shadow: 0 6px 22px rgba(72, 0, 9, 0.07);
+  }
+
+  body {
+    background: #f4f2f3;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+  }
+
+  .state {
+    min-height: 180px;
+    padding: 24px 16px;
+  }
+
+  body .status.status[data-status] {
+    min-width: 98px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-title {
+    font-size: clamp(1.28rem, 1.18rem + 2vw, 1.55rem);
+  }
+
+  .btn-primary,
+  .btn-outline {
+    min-height: 46px;
+    padding-inline: 16px;
+  }
+
+  .field {
+    gap: 7px;
+  }
+
+  .field label {
+    font-size: 0.88rem;
+  }
+
+  .field input,
+  .field select,
+  .field textarea,
+  .ng-select.admin-select .ng-select-container {
+    min-height: 46px;
+    border-radius: 12px;
+  }
+
+  .ng-select.admin-select .ng-dropdown-panel {
+    max-width: calc(100vw - 24px);
+  }
+
+  .flatpickr-calendar {
+    width: min(307px, calc(100vw - 24px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

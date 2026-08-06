@@ -7,21 +7,8 @@ const children = new Set();
 let shuttingDown = false;
 
 export function selectWorkspaceApiTargets(processes) {
-  const validProcesses = processes.filter(
+  return processes.filter(
     (process) => Number.isInteger(process.processId) && process.processId > 0,
-  );
-  const nestWatchers = validProcesses.filter((process) =>
-    /[\\/]@nestjs[\\/]cli[\\/]bin[\\/]nest\.js\s+start/i.test(
-      process.commandLine ?? "",
-    ),
-  );
-  if (nestWatchers.length > 0) return nestWatchers;
-
-  const processIds = new Set(
-    validProcesses.map((process) => process.processId),
-  );
-  return validProcesses.filter(
-    (process) => !processIds.has(process.parentProcessId),
   );
 }
 
@@ -72,7 +59,13 @@ function findRunningWorkspaceApiProcesses() {
   }));
 }
 
-function stopRunningWorkspaceApi() {
+function wait(milliseconds) {
+  return new Promise((resolvePromise) =>
+    setTimeout(resolvePromise, milliseconds),
+  );
+}
+
+async function stopRunningWorkspaceApi() {
   const targets = selectWorkspaceApiTargets(findRunningWorkspaceApiProcesses());
   if (targets.length === 0) return;
   console.log(
@@ -84,6 +77,15 @@ function stopRunningWorkspaceApi() {
       windowsHide: true,
     });
   }
+
+  const timeoutAt = Date.now() + 10_000;
+  while (Date.now() < timeoutAt) {
+    if (findRunningWorkspaceApiProcesses().length === 0) return;
+    await wait(200);
+  }
+  throw new Error(
+    "ปิด API เดิมไม่สำเร็จ กรุณาปิดหน้าต่างที่กำลังรัน API แล้วลองใหม่",
+  );
 }
 
 function findRunningWorkspaceWebProcesses() {
@@ -186,7 +188,7 @@ function shutdown(exitCode = 0) {
 }
 
 async function main() {
-  stopRunningWorkspaceApi();
+  await stopRunningWorkspaceApi();
   stopRunningWorkspaceWeb();
   console.log("\n[เริ่มระบบ] กำลังเปิดฐานข้อมูล MySQL...");
   await runAndWait(packageManager, ["db:start"]);

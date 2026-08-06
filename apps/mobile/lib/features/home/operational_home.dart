@@ -62,18 +62,15 @@ class _HomeContent extends ConsumerWidget {
                 const PoliceAviationLogo(size: 58),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'หน่วยค้นหาและช่วยเหลือทางอากาศ (SRU)',
-                      maxLines: 1,
-                      softWrap: false,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  child: Text(
+                    AppCopy.unitName,
+                    maxLines: 3,
+                    overflow: TextOverflow.visible,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.18,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -263,16 +260,20 @@ class _HomeContent extends ConsumerWidget {
                         ),
                         const SizedBox(width: 10),
                         FilledButton.tonalIcon(
+                          key: const Key('emergency-call-button'),
                           onPressed: () => launchPhone(context, '0 2509 1520'),
                           style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 48),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            minimumSize: const Size(0, 40),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.padded,
                           ),
-                          icon: const Icon(Icons.phone, size: 18),
+                          icon: const Icon(Icons.phone, size: 16),
                           label: const Text(
                             'โทรเลย',
                             maxLines: 1,
                             softWrap: false,
+                            style: TextStyle(fontSize: 14),
                           ),
                         ),
                       ],

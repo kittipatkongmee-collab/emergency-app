@@ -41,5 +41,16 @@
 @media (max-width: 600px) {
   :host {
     justify-content: center;
+    padding: 14px 0 4px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .page-button {
+    min-width: 42px;
+    min-height: 42px;
   }
 }

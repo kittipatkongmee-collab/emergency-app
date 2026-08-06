@@ -6,7 +6,7 @@ import {
   selectWorkspaceWebTargets,
 } from "./start-development.mjs";
 
-test("selects the Nest watcher so its complete API process tree is stopped", () => {
+test("selects both the Nest watcher and detached API process", () => {
   const processes = [
     {
       processId: 101,
@@ -21,7 +21,7 @@ test("selects the Nest watcher so its complete API process tree is stopped", () 
     },
   ];
 
-  assert.deepEqual(selectWorkspaceApiTargets(processes), [processes[0]]);
+  assert.deepEqual(selectWorkspaceApiTargets(processes), processes);
 });
 
 test("selects a direct API process when no Nest watcher exists", () => {
@@ -36,13 +36,13 @@ test("selects a direct API process when no Nest watcher exists", () => {
   assert.deepEqual(selectWorkspaceApiTargets(processes), processes);
 });
 
-test("ignores child processes when selecting a direct process tree", () => {
+test("selects child processes so detached API processes cannot keep Prisma locked", () => {
   const processes = [
     { processId: 301, parentProcessId: 10, commandLine: "api parent" },
     { processId: 302, parentProcessId: 301, commandLine: "api child" },
   ];
 
-  assert.deepEqual(selectWorkspaceApiTargets(processes), [processes[0]]);
+  assert.deepEqual(selectWorkspaceApiTargets(processes), processes);
 });
 
 test("selects only the Angular development server", () => {

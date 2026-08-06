@@ -33,6 +33,10 @@ android {
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
+    androidResources {
+        noCompress += listOf("mp4")
+    }
+
     buildTypes {
         release {
             // The development build uses debug signing; production requires an external release keystore.

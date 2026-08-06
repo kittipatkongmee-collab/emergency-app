@@ -81,6 +81,10 @@ export class ShellComponent implements OnInit, OnDestroy {
     ];
     return items.filter((item) => item.visible);
   });
+  readonly bottomMenu = computed(() => {
+    const primaryRoutes = new Set(['/dashboard', '/incidents', '/map', '/notifications']);
+    return this.menu().filter((item) => primaryRoutes.has(item.route));
+  });
   private readonly realtimeCleanups: Array<() => void> = [];
 
   constructor(

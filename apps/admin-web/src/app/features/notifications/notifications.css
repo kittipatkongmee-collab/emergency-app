@@ -140,10 +140,48 @@
 
   .delete-dialog {
     border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px 18px calc(20px + env(safe-area-inset-bottom));
   }
 
   .notice-actions {
     align-items: stretch;
     flex-wrap: wrap;
+  }
+
+  .notification-list {
+    margin-top: 16px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .notification-list article {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .notification-list article.unread {
+    border-left: 4px solid var(--primary);
+  }
+
+  .notification-list p {
+    line-height: 1.5;
+  }
+
+  .notice-actions .btn-outline {
+    flex: 1 1 auto;
+  }
+
+  .delete-dialog footer {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 8px;
   }
 }
