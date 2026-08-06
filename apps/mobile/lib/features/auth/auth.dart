@@ -229,11 +229,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              'หน่วยค้นหาและช่วยเหลือทางอากาศ (SRU)',
-              maxLines: 1,
+              AppCopy.unitNameTwoLine,
+              maxLines: 2,
               softWrap: false,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
+                height: 1.18,
                 color: AppTheme.primaryDark,
                 fontWeight: FontWeight.w700,
               ),
@@ -274,15 +276,24 @@ class LoginScreen extends ConsumerWidget {
                     const SizedBox(height: 18),
                     Semantics(
                       header: true,
-                      child: const Text(
-                        'หน่วยค้นหาและช่วยเหลือ\nทางอากาศ (SRU)',
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 32,
-                          height: 1.18,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.primaryDark,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppCopy.unitNameTwoLine,
+                            key: Key('login-unit-heading'),
+                            maxLines: 2,
+                            softWrap: false,
+                            overflow: TextOverflow.visible,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 27,
+                              height: 1.14,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.primaryDark,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -374,12 +385,34 @@ class LoginScreen extends ConsumerWidget {
                           PoliceAviationLogo(size: 64),
                           SizedBox(width: 14),
                           Flexible(
-                            child: Text(
-                              'กองบินตำรวจ\n701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520',
-                              style: TextStyle(
-                                color: AppTheme.primaryDark,
-                                height: 1.45,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    AppCopy.unitNameTwoLine,
+                                    key: Key('login-contact-unit-name'),
+                                    maxLines: 2,
+                                    softWrap: false,
+                                    style: TextStyle(
+                                      color: AppTheme.primaryDark,
+                                      fontSize: 13,
+                                      height: 1.42,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520',
+                                  style: TextStyle(
+                                    color: AppTheme.primaryDark,
+                                    fontSize: 13,
+                                    height: 1.42,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

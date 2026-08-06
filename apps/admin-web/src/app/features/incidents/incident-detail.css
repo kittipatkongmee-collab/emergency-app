@@ -339,17 +339,98 @@ aside {
   }
 }
 @media (max-width: 550px) {
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .detail-grid,
+  .content,
+  aside {
+    gap: 12px;
+  }
+
   .overview {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 18px 16px;
+  }
+  .incident-icon {
+    width: 54px;
+    height: 54px;
+    font-size: 1.6rem;
+  }
+  .overview h2 {
+    margin-bottom: 14px;
   }
   .overview dl {
     grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .overview dl div {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px dashed #eadfe1;
+  }
+  .overview dd {
+    overflow-wrap: anywhere;
   }
   .location header {
     display: grid;
     gap: 5px;
+    padding: 16px;
+  }
+  .location > p {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0 16px 4px;
+  }
+  .location iframe {
+    height: 260px;
+  }
+  .gallery,
+  .action,
+  .timeline {
+    padding: 16px;
+  }
+  .gallery > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .assignee {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .workflow > button,
+  .action > button {
+    width: 100%;
+  }
+  .modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+  .confirm-modal {
+    padding: 24px 18px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
   }
   .modal-actions {
     grid-template-columns: 1fr;
+  }
+  .image-preview-backdrop {
+    padding: 12px;
+  }
+  .image-preview {
+    max-height: calc(100dvh - 24px);
+  }
+  .image-preview img {
+    max-height: calc(100dvh - 92px);
+    border-radius: 12px;
+  }
+  .image-preview p {
+    margin-inline: 12px;
   }
 }

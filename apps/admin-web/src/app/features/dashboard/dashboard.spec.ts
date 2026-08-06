@@ -41,6 +41,22 @@ describe('DashboardComponent', () => {
     );
 
     expect(buttons.map((button) => button.textContent?.trim())).toEqual(['แสดงข้อมูล']);
+    const metricIcons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.metric-icon'),
+    );
+    const metricValue = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+      '.metric-body p',
+    );
+
+    expect(metricIcons).toHaveSize(4);
+    expect(metricIcons.map((icon) => icon.dataset['icon'])).toEqual([
+      'report',
+      'hourglass',
+      'activity',
+      'shield-check',
+    ]);
+    expect(metricIcons.every((icon) => icon.querySelector('svg') !== null)).toBeTrue();
+    expect(getComputedStyle(metricValue!).gap).toBe('9px');
   });
 
   it('แสดงสีสถานะเหมือนหน้ารายการแจ้งเหตุทุกสถานะ', async () => {

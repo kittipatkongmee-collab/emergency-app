@@ -3,17 +3,20 @@
     <button class="mobile-close" (click)="open.set(false)" aria-label="ปิดเมนู">×</button>
     <a class="identity" routerLink="/dashboard">
       <div class="mini-logo">
-        <small>กองบินตำรวจ</small><span aria-hidden="true">✈</span><b>TPAD</b>
+        <small>SRU</small><span aria-hidden="true">✈</span><b>TPAD</b>
         <img
           src="images/police-aviation-logo-transparent.png"
-          alt="โลโก้กองบินตำรวจ"
+          alt="โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)"
           (error)="hideMissingLogo($event)"
         />
       </div>
-      <strong>กองบินตำรวจ</strong>
-      <span>ระบบบริหารและรับแจ้งเหตุ<br />ทางอากาศ บ.ตร.</span>
+      <strong class="identity-title">
+        <span class="identity-title-line">หน่วยค้นหาและช่วยเหลืออากาศยาน</span>
+        <span class="identity-title-line">และเรือที่ประสบภัย (SRU)</span>
+      </strong>
+      <span>ระบบบริหารและรับแจ้งเหตุฉุกเฉิน</span>
     </a>
-    <nav aria-label="เมนูหลัก">
+    <nav class="sidebar-nav" aria-label="เมนูหลัก">
       @for (item of menu(); track item.route) {
         <a [routerLink]="item.route" routerLinkActive="active" (click)="open.set(false)">
           <span class="nav-icon" aria-hidden="true">
@@ -30,10 +33,9 @@
     </nav>
     <p class="office">
       <span class="police-seal">
-        <span aria-hidden="true">♜</span>
         <img
-          src="images/police-aviation-logo-transparent.png"
-          alt="โลโก้กองบินตำรวจ"
+          src="images/royal-thai-police-logo.png"
+          alt="ตราสำนักงานตำรวจแห่งชาติ"
           (error)="hideMissingLogo($event)"
         />
       </span>
@@ -69,6 +71,10 @@
   <div class="main">
     <header>
       <button class="menu-button" (click)="open.set(true)" aria-label="เปิดเมนู">☰</button>
+      <a class="mobile-header-brand" routerLink="/dashboard" aria-label="ไปหน้าแดชบอร์ด">
+        <img src="images/police-aviation-logo-transparent.png" alt="" />
+        <span><b>ระบบแจ้งเหตุ SRU</b><small>ศูนย์ปฏิบัติการ</small></span>
+      </a>
       <span class="spacer"></span>
       <a class="header-notification" routerLink="/notifications" aria-label="การแจ้งเตือน">
         <span class="header-bell-icon" aria-hidden="true">
@@ -86,4 +92,17 @@
     </header>
     <main><router-outlet /></main>
   </div>
+  <nav class="mobile-tabs" aria-label="เมนูหลักบนมือถือ">
+    @for (item of bottomMenu(); track item.route) {
+      <a [routerLink]="item.route" routerLinkActive="active">
+        <span class="mobile-tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><path [attr.d]="item.iconPath" /></svg>
+          @if (item.route === '/notifications' && unread() > 0) {
+            <i>{{ unread() > 99 ? '99+' : unread() }}</i>
+          }
+        </span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
 </div>

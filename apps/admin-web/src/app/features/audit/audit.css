@@ -118,4 +118,66 @@
   .pagination {
     justify-content: center;
   }
+
+  .operation-card {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .operation-card table,
+  .operation-card tbody {
+    display: block;
+  }
+
+  .operation-card thead {
+    display: none;
+  }
+
+  .operation-card tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .operation-card tr {
+    display: grid;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .operation-card td {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eadfe1;
+    overflow-wrap: anywhere;
+  }
+
+  .operation-card td::before {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .operation-card td:nth-child(1)::before { content: 'วันเวลา'; }
+  .operation-card td:nth-child(2)::before { content: 'ผู้ดำเนินการ'; }
+  .operation-card td:nth-child(3)::before { content: 'การกระทำ'; }
+  .operation-card td:nth-child(4)::before { content: 'ข้อมูล'; }
+
+  .operation-card td:last-child {
+    border-bottom: 0;
+  }
+
+  .pagination {
+    padding-inline: 0;
+  }
+
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }

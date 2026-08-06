@@ -24,15 +24,63 @@
   min-height: 122px;
 }
 .metric-icon {
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   flex: 0 0 58px;
   height: 58px;
   border-radius: 50%;
   color: #fff;
-  background: linear-gradient(145deg, #ae0017, #5b0008);
-  box-shadow: 0 8px 18px rgba(120, 0, 13, 0.22);
-  font-size: 1.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background:
+    radial-gradient(circle at 31% 24%, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(145deg, #c20a26 0%, #8f0014 48%, #510008 100%);
+  box-shadow:
+    0 10px 22px rgba(120, 0, 13, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.34),
+    inset 0 -3px 8px rgba(53, 0, 7, 0.28);
+}
+.metric-icon::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: inherit;
+}
+.metric-icon[data-metric='waiting'] {
+  background:
+    radial-gradient(circle at 31% 24%, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(145deg, #b40b35 0%, #79001f 52%, #440011 100%);
+}
+.metric-icon[data-metric='inProgress'] {
+  background:
+    radial-gradient(circle at 31% 24%, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(145deg, #a31534 0%, #6e0018 52%, #39000d 100%);
+}
+.metric-icon[data-metric='completed'] {
+  background:
+    radial-gradient(circle at 31% 24%, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(145deg, #920b21 0%, #63000f 52%, #350006 100%);
+}
+.metric-icon svg {
+  width: 29px;
+  height: 29px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1px rgba(32, 0, 4, 0.26));
+}
+.metric-icon .icon-detail {
+  stroke-width: 2;
+}
+.metric-icon .icon-accent {
+  opacity: 0.42;
+  stroke-width: 1.2;
 }
 .metric-body {
   min-width: 0;
@@ -43,6 +91,9 @@
   font-weight: 700;
 }
 .metric-body p {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
   margin: 2px 0;
   white-space: nowrap;
 }
@@ -433,5 +484,149 @@ td > a {
 
   .dashboard-date-actions {
     grid-column: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .heading {
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-date-filters {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .dashboard-date-actions button {
+    width: 100%;
+  }
+
+  .summary-grid {
+    gap: 10px;
+  }
+
+  .metric {
+    min-height: 106px;
+    padding: 14px 12px;
+  }
+
+  .metric-body small {
+    font-size: 0.82rem;
+  }
+
+  .metric-body i {
+    display: block;
+    line-height: 1.25;
+  }
+
+  .incidents > header,
+  .focus > header,
+  .location-card > header {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .incidents > header {
+    flex-wrap: wrap;
+  }
+
+  .filters {
+    padding: 12px 14px;
+  }
+
+  .incidents .table-wrap {
+    overflow: visible;
+    padding: 10px;
+  }
+
+  .incidents table,
+  .incidents tbody {
+    display: block;
+  }
+
+  .incidents thead {
+    display: none;
+  }
+
+  .incidents tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .incidents tbody tr {
+    display: grid;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(72, 0, 9, 0.05);
+  }
+
+  .incidents tbody tr.selected {
+    border-left: 4px solid var(--primary);
+    box-shadow: none;
+  }
+
+  .incidents td {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+    max-width: none;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eadfe1;
+    font-size: 0.84rem;
+  }
+
+  .incidents td::before {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .incidents td:nth-child(1)::before { content: 'วันเวลา'; }
+  .incidents td:nth-child(2)::before { content: 'ผู้แจ้ง'; }
+  .incidents td:nth-child(3)::before { content: 'ประเภทเหตุ'; }
+  .incidents td:nth-child(4)::before { content: 'โทรศัพท์'; }
+  .incidents td:nth-child(5)::before { content: 'สถานะ'; }
+  .incidents td:nth-child(6)::before { content: 'รูปภาพ'; }
+  .incidents td:nth-child(7)::before { content: 'พื้นที่'; }
+  .incidents td:nth-child(8)::before { content: 'รายละเอียด'; }
+
+  .incidents td:last-child {
+    border-bottom: 0;
+  }
+
+  .incidents td small {
+    max-width: 100%;
+  }
+
+  .incidents td > a {
+    justify-self: start;
+    min-width: 44px;
+  }
+
+  .table-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .focus-content {
+    grid-template-columns: 88px minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .focus-photo {
+    width: 88px;
+    height: 116px;
+  }
+
+  .full {
+    min-height: 46px;
+    margin: 0 14px 14px;
   }
 }

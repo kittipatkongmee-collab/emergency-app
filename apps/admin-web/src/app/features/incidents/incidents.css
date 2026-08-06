@@ -86,3 +86,91 @@ td small {
   }
 
 }
+
+@media (max-width: 640px) {
+  .heading {
+    margin-bottom: 16px;
+  }
+
+  .filters {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .list {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table,
+  tbody {
+    display: block;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  tbody tr {
+    display: grid;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  td {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    min-width: 0;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eadfe1;
+  }
+
+  td::before {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  td:nth-child(1)::before { content: 'รหัสเหตุ'; }
+  td:nth-child(2)::before { content: 'วันเวลา'; }
+  td:nth-child(3)::before { content: 'ผู้แจ้ง'; }
+  td:nth-child(4)::before { content: 'รายละเอียด'; }
+  td:nth-child(5)::before { content: 'สถานะ'; }
+  td:nth-child(6)::before { content: 'พื้นที่'; }
+  td:nth-child(7)::before { content: 'ดำเนินการ'; }
+
+  td:last-child {
+    border-bottom: 0;
+  }
+
+  td small {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .open {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+}

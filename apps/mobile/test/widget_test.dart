@@ -428,10 +428,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final heading = tester.widget<Text>(
-        find.text('หน่วยค้นหาและช่วยเหลือ\nทางอากาศ (SRU)'),
+        find.byKey(const Key('login-unit-heading')),
       );
       expect(heading.maxLines, 2);
-      expect(heading.style?.fontSize, 32);
+      expect(heading.softWrap, false);
+      expect(heading.style?.fontSize, 27);
       expect(find.text('ระบบแจ้งเหตุและติดตามสถานะเหตุฉุกเฉิน'), findsNothing);
       expect(
         find.text(
@@ -451,7 +452,7 @@ void main() {
       expect(tester.getCenter(find.byType(Card)).dx, closeTo(205.5, 1));
 
       final headingBottom = tester
-          .getBottomRight(find.text('หน่วยค้นหาและช่วยเหลือ\nทางอากาศ (SRU)'))
+          .getBottomRight(find.byKey(const Key('login-unit-heading')))
           .dy;
       final lineButtonTop = tester.getTopLeft(find.byType(GradientButton)).dy;
       final brandGroupCenter = tester
@@ -464,9 +465,7 @@ void main() {
         find.text('ดูนโยบายความเป็นส่วนตัว'),
       );
       final contactBottom = tester.getBottomRight(
-        find.text(
-          'กองบินตำรวจ\n701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520',
-        ),
+        find.text('701 ถนนรามอินทรา แขวงท่าแร้ง\nโทรศัพท์ 0 2509 1520'),
       );
       expect(contactBottom.dy, greaterThan(privacyBottom.dy));
     });
@@ -532,7 +531,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('สวัสดี test1'), findsOneWidget);
-      expect(find.text('หน่วยค้นหาและช่วยเหลือทางอากาศ (SRU)'), findsOneWidget);
+      expect(
+        find.text('หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)'),
+        findsOneWidget,
+      );
       final header = tester.widget<Container>(
         find.byKey(const Key('home-header-background')),
       );
@@ -584,6 +586,13 @@ void main() {
       );
       expect(emergencyPhone.maxLines, 1);
       expect(emergencyPhone.softWrap, isFalse);
+      final emergencyCallButton = tester.widget<FilledButton>(
+        find.byKey(const Key('emergency-call-button')),
+      );
+      expect(
+        emergencyCallButton.style?.minimumSize?.resolve(<WidgetState>{}),
+        const Size(0, 40),
+      );
       expect(find.textContaining('กองบินตำรวจ 0 2509 1520'), findsNothing);
       expect(find.text('แจ้งเหตุใหม่'), findsOneWidget);
       expect(find.text('ยังไม่มีรายการแจ้งเหตุ'), findsNothing);
@@ -676,6 +685,10 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final bell429 = aircraftInformationById('bell-429-global-ranger')!;
       expect(bell429.galleryAssets, hasLength(5));
+      expect(
+        bell429.videoAsset,
+        'assets/videos/aircraft/bell-429/bell-429.mp4',
+      );
       expect(bell429.specificationSections, hasLength(7));
       expect(
         bell429.specificationSections.first.items.first.value,
@@ -705,7 +718,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(430, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final bell412 = aircraftInformationById('bell-412-ep')!;
-      expect(bell412.galleryAssets, hasLength(6));
+      expect(bell412.galleryAssets, hasLength(10));
       expect(bell412.videoAsset, 'assets/videos/aircraft/bell-412/trat.mp4');
       expect(bell412.specificationSections, hasLength(2));
       expect(
@@ -722,13 +735,13 @@ void main() {
         ),
       );
 
-      expect(find.text('รูปภาพ 1 จาก 6'), findsOneWidget);
+      expect(find.text('รูปภาพ 1 จาก 10'), findsOneWidget);
       expect(find.text('General characteristics'), findsOneWidget);
       expect(find.text('Crew'), findsOneWidget);
       expect(find.text('one-two pilots'), findsOneWidget);
       await tester.drag(find.byType(PageView), const Offset(-500, 0));
       await tester.pumpAndSettle();
-      expect(find.text('รูปภาพ 2 จาก 6'), findsOneWidget);
+      expect(find.text('รูปภาพ 2 จาก 10'), findsOneWidget);
     });
 
     testWidgets('รายละเอียด AS365N3+ ปัดดูรูปภาพจริงซ้ายขวาได้', (

@@ -43,19 +43,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 12px;
   margin: 0 0 18px;
   color: #761019;
-  font-size: clamp(1rem, 1.3vw, 1.25rem);
+  font-size: clamp(0.9rem, 1.05vw, 1.08rem);
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .eyebrow::before,
 .eyebrow::after {
+  flex: 0 0 28px;
   width: 34px;
   height: 1px;
   background: #c99a3d;
   content: '';
+}
+
+.eyebrow span {
+  max-width: min(620px, 82%);
 }
 
 .eyebrow span::before,
@@ -320,6 +326,7 @@ form {
   color: #fff7ed;
   text-align: center;
   font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .login-footer i {
@@ -353,14 +360,18 @@ form {
 @media (max-width: 560px) {
   :host {
     grid-template-rows: 1fr auto;
+    min-height: 100dvh;
+    background-position: 42% center;
   }
 
   .login-page {
-    padding: 18px 14px;
+    align-items: center;
+    padding: max(18px, env(safe-area-inset-top)) 14px 18px;
   }
 
   .login-card {
-    padding: 28px 22px;
+    width: 100%;
+    padding: 26px 18px;
     border-radius: 20px;
   }
 
@@ -370,13 +381,36 @@ form {
   }
 
   h2 {
-    font-size: 1.8rem;
+    font-size: clamp(1.55rem, 7vw, 1.8rem);
   }
 
   .login-footer {
     flex-wrap: wrap;
     row-gap: 4px;
-    padding-block: 14px;
-    font-size: 0.78rem;
+    padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+    font-size: 0.74rem;
+  }
+
+  .field input,
+  .field select {
+    font-size: 16px;
+  }
+
+  .submit {
+    min-height: 54px;
+  }
+
+  .login-footer i {
+    display: none;
+  }
+}
+
+@media (max-height: 720px) and (max-width: 560px) {
+  .login-page {
+    align-items: start;
+  }
+
+  .login-card {
+    padding-block: 20px;
   }
 }

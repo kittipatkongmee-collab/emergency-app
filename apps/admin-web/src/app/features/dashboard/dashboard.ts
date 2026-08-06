@@ -41,10 +41,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { value: 'COMPLETED', label: 'ภารกิจสำเร็จ' },
   ];
   readonly cards = [
-    ['total', '▣', 'แจ้งเหตุทั้งหมด'],
-    ['waiting', '◷', 'รอการดำเนินการ'],
-    ['inProgress', '⌖', 'กำลังดำเนินการ'],
-    ['completed', '✓', 'ภารกิจสำเร็จ'],
+    ['total', 'report', 'แจ้งเหตุทั้งหมด'],
+    ['waiting', 'hourglass', 'รอการดำเนินการ'],
+    ['inProgress', 'activity', 'กำลังดำเนินการ'],
+    ['completed', 'shield-check', 'ภารกิจสำเร็จ'],
   ] as const;
   private cleanups: Array<() => void> = [];
 

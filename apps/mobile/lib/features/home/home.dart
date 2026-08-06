@@ -96,18 +96,15 @@ class HomeTab extends ConsumerWidget {
                   const PoliceAviationLogo(size: 64),
                   const SizedBox(width: 12),
                   const Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'หน่วยค้นหาและช่วยเหลือทางอากาศ (SRU)',
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    child: Text(
+                      AppCopy.unitName,
+                      maxLines: 3,
+                      overflow: TextOverflow.visible,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.18,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
@@ -745,7 +742,7 @@ class PrivacyScreen extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         Text(
-          'ผู้ใช้สามารถขอเข้าถึง แก้ไข หรือสอบถามการใช้ข้อมูลผ่านกองบินตำรวจ โทรศัพท์ 0 2509 1520 ทั้งนี้ระยะเวลาเก็บรักษาต้องเป็นไปตามนโยบายฉบับอนุมัติของหน่วยงาน',
+          'ผู้ใช้สามารถขอเข้าถึง แก้ไข หรือสอบถามการใช้ข้อมูลผ่านหน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU) โทรศัพท์ 0 2509 1520 ทั้งนี้ระยะเวลาเก็บรักษาต้องเป็นไปตามนโยบายฉบับอนุมัติของหน่วยงาน',
           style: TextStyle(height: 1.7),
         ),
       ],

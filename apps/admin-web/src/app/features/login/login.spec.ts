@@ -5,7 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { LoginComponent } from './login';
 
 describe('LoginComponent', () => {
-  it('แสดงโลโก้และชื่อกองบินตำรวจ', async () => {
+  it('แสดงโลโก้และชื่อหน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย', async () => {
     const auth = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
     const router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
     await TestBed.configureTestingModule({
@@ -20,8 +20,12 @@ describe('LoginComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     const logo = element.querySelector<HTMLImageElement>('.brand-mark img');
     expect(logo?.getAttribute('src')).toBe('images/police-aviation-logo-transparent.png');
-    expect(logo?.getAttribute('alt')).toBe('โลโก้กองบินตำรวจ');
-    expect(element.querySelector('.brand .eyebrow')?.textContent?.trim()).toBe('กองบินตำรวจ');
+    expect(logo?.getAttribute('alt')).toBe(
+      'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+    );
+    expect(element.querySelector('.brand .eyebrow')?.textContent?.trim()).toBe(
+      'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+    );
     expect(element.querySelector('.officer-icon svg')).not.toBeNull();
     expect(element.querySelector('.smart-card')).toBeNull();
     expect(element.querySelector('.help')).toBeNull();

@@ -43,14 +43,25 @@ describe('ShellComponent', () => {
       element.querySelectorAll<HTMLImageElement>('.identity img, .office img'),
     );
     expect(brandLogos.length).toBe(2);
-    expect(
-      brandLogos.every(
-        (logo) => logo.getAttribute('src') === 'images/police-aviation-logo-transparent.png',
-      ),
-    ).toBeTrue();
-    expect(brandLogos.every((logo) => logo.getAttribute('alt') === 'โลโก้กองบินตำรวจ')).toBeTrue();
+    expect(brandLogos[0].getAttribute('src')).toBe(
+      'images/police-aviation-logo-transparent.png',
+    );
+    expect(brandLogos[0].getAttribute('alt')).toBe(
+      'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+    );
+    expect(brandLogos[1].getAttribute('src')).toBe('images/royal-thai-police-logo.png');
+    expect(brandLogos[1].getAttribute('alt')).toBe('ตราสำนักงานตำรวจแห่งชาติ');
     expect(element.querySelector('.nav-badge')?.textContent?.trim()).toBe('3');
+    const identityTitleLines = Array.from(
+      element.querySelectorAll<HTMLElement>('.identity-title-line'),
+    ).map((line) => line.textContent?.trim());
+    expect(identityTitleLines).toEqual([
+      'หน่วยค้นหาและช่วยเหลืออากาศยาน',
+      'และเรือที่ประสบภัย (SRU)',
+    ]);
     expect(element.querySelectorAll('.nav-icon svg').length).toBe(6);
+    expect(element.querySelectorAll('.mobile-tabs a').length).toBe(4);
+    expect(element.querySelector('.mobile-header-brand')).not.toBeNull();
     expect(element.textContent).not.toContain('ตั้งค่าระบบ');
     expect(element.querySelector('.user b')?.textContent?.trim()).toBe('ผู้ดูแลระบบ');
     expect(element.querySelector('.user > span')).toBeNull();

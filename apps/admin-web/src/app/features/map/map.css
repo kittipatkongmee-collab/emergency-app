@@ -229,9 +229,74 @@
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
   }
 
   .active-count {
     align-self: flex-start;
+  }
+
+  .aggregate-section,
+  .individual-section {
+    margin-top: 18px;
+  }
+
+  .aggregate-map-canvas,
+  .aggregate-map-state,
+  .item-map-state,
+  .selected-map-card {
+    height: 340px;
+    min-height: 340px;
+    border-radius: 16px;
+  }
+
+  .map-caption {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .map-caption > div:first-child {
+    width: 100%;
+  }
+
+  .map-caption > div:first-child span {
+    white-space: normal;
+  }
+
+  .locations h2 {
+    padding: 16px 14px 4px;
+    font-size: 1.08rem;
+  }
+
+  .location-list {
+    padding: 0 14px;
+  }
+
+  .locations article {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 13px 0;
+  }
+
+  .locations article > a {
+    justify-self: start;
+    min-height: 40px;
+    padding-top: 8px;
+  }
+
+  .location-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .no-active-incidents {
+    top: 12px;
+    max-width: calc(100% - 24px);
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    text-align: center;
   }
 }

@@ -10,3 +10,16 @@
 .settings button {
   justify-self: start;
 }
+
+@media (max-width: 600px) {
+  .settings {
+    gap: 14px;
+    margin-top: 16px;
+    padding: 18px 16px;
+  }
+
+  .settings button {
+    justify-self: stretch;
+    width: 100%;
+  }
+}

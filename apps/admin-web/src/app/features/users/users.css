@@ -330,9 +330,107 @@
 
   .staff-dialog {
     border-radius: var(--radius) var(--radius) 0 0;
+    max-height: calc(100dvh - 24px);
+    padding: 20px 16px calc(18px + env(safe-area-inset-bottom));
   }
 
   .operation-card {
-    overflow: auto;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .page-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .page-actions button {
+    width: 100%;
+  }
+
+  .dialog-header {
+    margin-bottom: 18px;
+  }
+
+  .dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 8px;
+  }
+
+  .dialog-actions button {
+    width: 100%;
+  }
+
+  .operation-card table,
+  .operation-card tbody {
+    display: block;
+  }
+
+  .operation-card thead {
+    display: none;
+  }
+
+  .operation-card tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .operation-card tr {
+    display: grid;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .operation-card td {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eadfe1;
+  }
+
+  .operation-card td::before {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .operation-card td:nth-child(1)::before { content: 'ชื่อผู้ใช้'; }
+  .operation-card td:nth-child(2)::before { content: 'ชื่อ-นามสกุล'; }
+  .operation-card td:nth-child(3)::before { content: 'ตำแหน่ง'; }
+  .operation-card td:nth-child(4)::before { content: 'สถานะ'; }
+  .operation-card td:nth-child(5)::before { content: 'จัดการ'; }
+
+  .operation-card td:last-child {
+    border-bottom: 0;
+  }
+
+  .user-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .user-status {
+    min-width: 98px;
+    font-size: 0.75rem;
+  }
+
+  .confirm-dialog {
+    padding: 24px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .page-actions,
+  .dialog-actions {
+    grid-template-columns: 1fr;
   }
 }
