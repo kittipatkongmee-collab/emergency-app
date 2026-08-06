@@ -28,6 +28,80 @@ String incidentStatusLabel(String status) => switch (status) {
   _ => 'ไม่ทราบสถานะ',
 };
 
+class IncidentStatusBadge extends StatelessWidget {
+  const IncidentStatusBadge({required this.status, super.key});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (topColor, bottomColor, borderColor, shadowColor) = switch (status) {
+      'RECEIVED' || 'CANCELLED' => (
+        const Color(0xFFFF394B),
+        const Color(0xFFDF001C),
+        const Color(0xFFFF5A69),
+        const Color(0x4DCD001C),
+      ),
+      'FORWARDED' || 'INSPECTING' || 'IN_PROGRESS' => (
+        const Color(0xFFFFC928),
+        const Color(0xFFF29A00),
+        const Color(0xFFFFC83F),
+        const Color(0x52CB8400),
+      ),
+      'COMPLETED' => (
+        const Color(0xFF2BCF65),
+        const Color(0xFF07983D),
+        const Color(0xFF35D870),
+        const Color(0x47008433),
+      ),
+      _ => (
+        const Color(0xFFB8152A),
+        AppTheme.primary,
+        const Color(0xFFD45C69),
+        const Color(0x4D97000F),
+      ),
+    };
+
+    return Semantics(
+      label: 'สถานะ ${incidentStatusLabel(status)}',
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 112),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [topColor, bottomColor],
+          ),
+          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: 9,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          incidentStatusLabel(status),
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            height: 1.15,
+            shadows: [Shadow(color: Color(0x2E000000), offset: Offset(0, 1))],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SelectedIncidentTypeCard extends StatelessWidget {
   const SelectedIncidentTypeCard({required this.type, super.key});
 
@@ -387,21 +461,55 @@ class IncidentHistory {
   );
 }
 
+class IncidentPageData {
+  const IncidentPageData({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+  });
+
+  final List<Incident> items;
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+}
+
 class IncidentRepository {
   IncidentRepository(this.api);
   final ApiClient api;
   Future<List<Incident>> mine({String? status}) async {
+    final result = await minePage(status: status, limit: 100);
+    return result.items;
+  }
+
+  Future<IncidentPageData> minePage({
+    String? status,
+    int page = 1,
+    int limit = 10,
+  }) async {
     final r = await api.dio.get(
       '/incidents/me',
       queryParameters: {
-        'limit': 100,
+        'page': page,
+        'limit': limit,
         if (status != null && status.isNotEmpty) 'status': status,
       },
     );
     final data = (r.data as Map)['data'] as Map;
-    return (data['items'] as List)
+    final pagination = data['pagination'] as Map;
+    final items = (data['items'] as List)
         .map((e) => Incident.fromJson(e as Map<String, dynamic>, api.mediaUrl))
         .toList();
+    return IncidentPageData(
+      items: items,
+      page: (pagination['page'] as num).toInt(),
+      limit: (pagination['limit'] as num).toInt(),
+      total: (pagination['total'] as num).toInt(),
+      totalPages: (pagination['totalPages'] as num).toInt(),
+    );
   }
 
   Future<Incident> detail(String id) async {
@@ -461,9 +569,10 @@ final incidentsProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(incidentRepositoryProvider).mine(),
 );
 final incidentHistoryProvider = FutureProvider.autoDispose
-    .family<List<Incident>, String?>(
-      (ref, status) =>
-          ref.watch(incidentRepositoryProvider).mine(status: status),
+    .family<IncidentPageData, ({int page, String status})>(
+      (ref, query) => ref
+          .watch(incidentRepositoryProvider)
+          .minePage(page: query.page, status: query.status),
     );
 
 class ReportDraft {
@@ -629,7 +738,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 12),
-            child: RoyalThaiPoliceLogo(size: 42),
+            child: PoliceAviationLogo(size: 42),
           ),
         ],
       ),
@@ -1748,15 +1857,7 @@ class _TrackingBody extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Chip(
-                      label: Text(labels[incident.status] ?? incident.status),
-                      labelStyle: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primaryDark,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
+                    IncidentStatusBadge(status: incident.status),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -2023,6 +2124,14 @@ class AppNotification {
   final String id, title, message, createdAt;
   final String? incidentId;
   final bool isRead;
+  AppNotification copyWith({bool? isRead}) => AppNotification(
+    id: id,
+    title: title,
+    message: message,
+    createdAt: createdAt,
+    isRead: isRead ?? this.isRead,
+    incidentId: incidentId,
+  );
   factory AppNotification.fromJson(Map<String, dynamic> json) =>
       AppNotification(
         id: json['id'] as String,
@@ -2034,28 +2143,193 @@ class AppNotification {
       );
 }
 
-class NotificationRepository {
+const notificationPageSize = 9;
+
+class NotificationPageData {
+  const NotificationPageData({
+    required this.items,
+    required this.page,
+    required this.total,
+    required this.totalPages,
+  });
+
+  final List<AppNotification> items;
+  final int page;
+  final int total;
+  final int totalPages;
+}
+
+abstract interface class NotificationDataSource {
+  Future<NotificationPageData> listPage({
+    required int page,
+    required int limit,
+  });
+  Future<void> read(String id);
+  Future<void> readAll();
+}
+
+class NotificationRepository implements NotificationDataSource {
   const NotificationRepository(this.api);
   final ApiClient api;
-  Future<List<AppNotification>> list() async {
-    final response = await api.dio.get('/notifications');
-    final page = (response.data as Map)['data'] as Map;
-    return (page['items'] as List)
+  @override
+  Future<NotificationPageData> listPage({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await api.dio.get(
+      '/notifications',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    final data = (response.data as Map)['data'] as Map;
+    final pagination = data['pagination'] as Map;
+    final items = (data['items'] as List)
         .map((item) => AppNotification.fromJson(item as Map<String, dynamic>))
         .toList();
+    return NotificationPageData(
+      items: items,
+      page: (pagination['page'] as num).toInt(),
+      total: (pagination['total'] as num).toInt(),
+      totalPages: (pagination['totalPages'] as num).toInt(),
+    );
   }
 
+  @override
   Future<void> read(String id) =>
       api.dio.patch<void>('/notifications/$id/read');
+  @override
   Future<void> readAll() => api.dio.patch<void>('/notifications/read-all');
 }
 
-final notificationRepositoryProvider = Provider(
+final notificationRepositoryProvider = Provider<NotificationDataSource>(
   (ref) => NotificationRepository(ref.watch(apiClientProvider)),
 );
-final notificationsProvider = FutureProvider.autoDispose(
-  (ref) => ref.watch(notificationRepositoryProvider).list(),
-);
+
+class NotificationFeedState {
+  const NotificationFeedState({
+    required this.items,
+    required this.page,
+    required this.total,
+    required this.totalPages,
+    this.loadingMore = false,
+    this.loadMoreError,
+  });
+
+  final List<AppNotification> items;
+  final int page;
+  final int total;
+  final int totalPages;
+  final bool loadingMore;
+  final String? loadMoreError;
+
+  bool get hasMore => page < totalPages;
+
+  NotificationFeedState copyWith({
+    List<AppNotification>? items,
+    bool? loadingMore,
+    String? loadMoreError,
+    bool clearLoadMoreError = false,
+  }) => NotificationFeedState(
+    items: items ?? this.items,
+    page: page,
+    total: total,
+    totalPages: totalPages,
+    loadingMore: loadingMore ?? this.loadingMore,
+    loadMoreError: clearLoadMoreError
+        ? null
+        : loadMoreError ?? this.loadMoreError,
+  );
+}
+
+class NotificationFeedNotifier
+    extends AutoDisposeAsyncNotifier<NotificationFeedState> {
+  @override
+  Future<NotificationFeedState> build() => _fetchPage(1);
+
+  Future<NotificationFeedState> _fetchPage(int page) async {
+    final result = await ref
+        .read(notificationRepositoryProvider)
+        .listPage(page: page, limit: notificationPageSize);
+    return NotificationFeedState(
+      items: result.items,
+      page: result.page,
+      total: result.total,
+      totalPages: result.totalPages,
+    );
+  }
+
+  Future<void> refreshFeed() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _fetchPage(1));
+  }
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || current.loadingMore || !current.hasMore) return;
+    state = AsyncData(
+      current.copyWith(loadingMore: true, clearLoadMoreError: true),
+    );
+    try {
+      final next = await ref
+          .read(notificationRepositoryProvider)
+          .listPage(page: current.page + 1, limit: notificationPageSize);
+      final itemsById = <String, AppNotification>{
+        for (final item in current.items) item.id: item,
+        for (final item in next.items) item.id: item,
+      };
+      state = AsyncData(
+        NotificationFeedState(
+          items: itemsById.values.toList(),
+          page: next.page,
+          total: next.total,
+          totalPages: next.totalPages,
+        ),
+      );
+    } catch (_) {
+      state = AsyncData(
+        current.copyWith(
+          loadingMore: false,
+          loadMoreError: 'ไม่สามารถโหลดการแจ้งเตือนเพิ่มเติมได้',
+        ),
+      );
+    }
+  }
+
+  Future<void> markRead(AppNotification notice) async {
+    if (notice.isRead) return;
+    await ref.read(notificationRepositoryProvider).read(notice.id);
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(
+      current.copyWith(
+        items: current.items
+            .map(
+              (item) =>
+                  item.id == notice.id ? item.copyWith(isRead: true) : item,
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Future<void> markAllRead() async {
+    await ref.read(notificationRepositoryProvider).readAll();
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(
+      current.copyWith(
+        items: current.items
+            .map((item) => item.copyWith(isRead: true))
+            .toList(),
+      ),
+    );
+  }
+}
+
+final notificationsProvider =
+    AutoDisposeAsyncNotifierProvider<
+      NotificationFeedNotifier,
+      NotificationFeedState
+    >(NotificationFeedNotifier.new);
 final unreadCountProvider = FutureProvider.autoDispose((ref) async {
   final response = await ref
       .watch(apiClientProvider)
@@ -2073,8 +2347,7 @@ class NotificationsScreen extends ConsumerWidget {
       actions: [
         TextButton(
           onPressed: () async {
-            await ref.read(notificationRepositoryProvider).readAll();
-            ref.invalidate(notificationsProvider);
+            await ref.read(notificationsProvider.notifier).markAllRead();
             ref.invalidate(unreadCountProvider);
           },
           child: const Text('อ่านทั้งหมด'),
@@ -2097,58 +2370,109 @@ class NotificationsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          data: (items) {
+          data: (feed) {
+            final items = feed.items;
             if (items.isEmpty) {
               return const Center(child: Text('ยังไม่มีการแจ้งเตือน'));
             }
-            return RefreshIndicator(
-              onRefresh: () => ref.refresh(notificationsProvider.future),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) {
-                  final notice = items[i];
-                  return Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppTheme.primaryLight,
-                        child: Icon(
-                          notice.isRead
-                              ? Icons.notifications_none
-                              : Icons.notifications,
-                          color: AppTheme.primary,
+            return NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.metrics.axis == Axis.vertical &&
+                    notification.metrics.extentAfter < 280) {
+                  ref.read(notificationsProvider.notifier).loadMore();
+                }
+                return false;
+              },
+              child: RefreshIndicator(
+                onRefresh: () =>
+                    ref.read(notificationsProvider.notifier).refreshFeed(),
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount:
+                      items.length +
+                      (feed.hasMore ||
+                              feed.loadingMore ||
+                              feed.loadMoreError != null
+                          ? 1
+                          : 0),
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (_, i) {
+                    if (i == items.length) {
+                      return _NotificationFeedFooter(feed: feed);
+                    }
+                    final notice = items[i];
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.primaryLight,
+                          child: Icon(
+                            notice.isRead
+                                ? Icons.notifications_none
+                                : Icons.notifications,
+                            color: AppTheme.primary,
+                          ),
                         ),
-                      ),
-                      title: Text(
-                        notice.title,
-                        style: TextStyle(
-                          fontWeight: notice.isRead
-                              ? FontWeight.w500
-                              : FontWeight.w700,
+                        title: Text(
+                          notice.title,
+                          style: TextStyle(
+                            fontWeight: notice.isRead
+                                ? FontWeight.w500
+                                : FontWeight.w700,
+                          ),
                         ),
+                        subtitle: Text(notice.message),
+                        onTap: () async {
+                          if (!notice.isRead) {
+                            await ref
+                                .read(notificationsProvider.notifier)
+                                .markRead(notice);
+                            ref.invalidate(unreadCountProvider);
+                          }
+                          if (notice.incidentId != null && context.mounted) {
+                            context.push('/tracking/${notice.incidentId}');
+                          }
+                        },
                       ),
-                      subtitle: Text(notice.message),
-                      onTap: () async {
-                        if (!notice.isRead) {
-                          await ref
-                              .read(notificationRepositoryProvider)
-                              .read(notice.id);
-                          ref.invalidate(notificationsProvider);
-                          ref.invalidate(unreadCountProvider);
-                        }
-                        if (notice.incidentId != null && context.mounted) {
-                          context.push('/tracking/${notice.incidentId}');
-                        }
-                      },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             );
           },
         ),
   );
+}
+
+class _NotificationFeedFooter extends ConsumerWidget {
+  const _NotificationFeedFooter({required this.feed});
+  final NotificationFeedState feed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (feed.loadMoreError != null) {
+      return Center(
+        child: TextButton.icon(
+          onPressed: () => ref.read(notificationsProvider.notifier).loadMore(),
+          icon: const Icon(Icons.refresh),
+          label: Text(feed.loadMoreError!),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Center(
+        child: feed.loadingMore
+            ? const SizedBox.square(
+                dimension: 28,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              )
+            : const Text(
+                'เลื่อนลงเพื่อโหลดเพิ่มเติม',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+      ),
+    );
+  }
 }
 
 class PermissionsScreen extends StatefulWidget {

@@ -121,25 +121,11 @@
         </tbody>
       </table>
     </div>
-    <footer>
-      <span>ทั้งหมด {{ result()!.pagination.total }} รายการ</span>
-      <div>
-        <button
-          class="btn-outline"
-          [disabled]="result()!.pagination.page === 1"
-          (click)="load(result()!.pagination.page - 1)"
-        >
-          ก่อนหน้า
-        </button>
-        <b>{{ result()!.pagination.page }} / {{ result()!.pagination.totalPages }}</b>
-        <button
-          class="btn-outline"
-          [disabled]="result()!.pagination.page === result()!.pagination.totalPages"
-          (click)="load(result()!.pagination.page + 1)"
-        >
-          ถัดไป
-        </button>
-      </div>
-    </footer>
+    @if (result()!.pagination.totalPages > 1) {
+      <app-pagination
+        [pagination]="result()!.pagination"
+        (pageChange)="selectPage($event)"
+      />
+    }
   }
 </section>

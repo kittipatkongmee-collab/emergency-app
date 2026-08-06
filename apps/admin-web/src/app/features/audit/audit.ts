@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, signal } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { Page, Pagination } from '../../core/models';
 import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
@@ -16,7 +17,7 @@ interface AuditItem {
 
 @Component({
   standalone: true,
-  imports: [ThaiBuddhistDatePipe],
+  imports: [ReactiveFormsModule, ThaiBuddhistDatePipe],
   templateUrl: './audit.html',
   styleUrl: './audit.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,6 +27,7 @@ export class AuditComponent implements OnInit {
   readonly items = signal<AuditItem[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly keyword = new FormControl('', { nonNullable: true });
   readonly pagination = signal<Pagination>({
     page: 1,
     limit: this.pageSize,
@@ -52,10 +54,13 @@ export class AuditComponent implements OnInit {
 
   load(page = this.pagination().page) {
     this.loading.set(true);
+    this.error.set('');
+    const keyword = this.keyword.value.trim();
     this.api
       .get<Page<AuditItem>>('admin/audit-logs', {
         page: String(page),
         limit: String(this.pageSize),
+        ...(keyword ? { keyword } : {}),
       })
       .subscribe({
         next: (result) => {
@@ -68,6 +73,10 @@ export class AuditComponent implements OnInit {
           this.loading.set(false);
         },
       });
+  }
+
+  search() {
+    this.load(1);
   }
 
   selectPage(page: number) {

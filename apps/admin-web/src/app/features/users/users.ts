@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { AdminRole, AdminUser, Page, StaffPosition } from '../../core/models';
+import { AdminRole, AdminUser, Page, Pagination, StaffPosition } from '../../core/models';
+import { PaginationComponent } from '../../shared/pagination';
 
 interface PendingUserAction {
   kind: 'status' | 'delete';
@@ -12,13 +14,20 @@ interface PendingUserAction {
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [NgSelectComponent, PaginationComponent, ReactiveFormsModule],
   templateUrl: './users.html',
   styleUrl: './users.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsersComponent implements OnInit {
+  readonly pageSize = 10;
   readonly users = signal<AdminUser[]>([]);
+  readonly pagination = signal<Pagination>({
+    page: 1,
+    limit: this.pageSize,
+    total: 0,
+    totalPages: 0,
+  });
   readonly positions = signal<StaffPosition[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -149,19 +158,32 @@ export class UsersComponent implements OnInit {
     this.actionError.set('');
   }
 
-  load() {
+  load(page = this.pagination().page) {
     this.loading.set(true);
     this.error.set('');
-    this.api.get<Page<AdminUser>>('admin/users', { limit: '100' }).subscribe({
-      next: (result) => {
-        this.users.set(result.items);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('ไม่สามารถโหลดบัญชีเจ้าหน้าที่ได้');
-        this.loading.set(false);
-      },
-    });
+    this.api
+      .get<Page<AdminUser>>('admin/users', {
+        page: String(page),
+        limit: String(this.pageSize),
+      })
+      .subscribe({
+        next: (result) => {
+          this.users.set(result.items);
+          this.pagination.set(result.pagination);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('ไม่สามารถโหลดบัญชีเจ้าหน้าที่ได้');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  selectPage(page: number) {
+    if (page < 1 || page > this.pagination().totalPages || page === this.pagination().page) {
+      return;
+    }
+    this.load(page);
   }
 
   loadPositions() {

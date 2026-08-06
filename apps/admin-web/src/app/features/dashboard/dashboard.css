@@ -96,7 +96,7 @@ header a {
 }
 .filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 160px auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(170px, 190px);
   gap: 10px;
   padding: 13px 16px;
   border-bottom: 1px solid var(--border-color);
@@ -110,20 +110,15 @@ header a {
   padding: 0 11px;
   background: #fff;
 }
-.filters input,
-.filters select {
+.filters input {
   width: 100%;
   border: 0;
   outline: 0;
   background: transparent;
 }
-.filters select {
-  border: 1px solid #dcd3d5;
-  border-radius: 10px;
-  padding: 9px 10px;
-}
-.filters .btn-outline {
-  padding: 8px 14px;
+
+.filters .admin-select {
+  min-width: 0;
 }
 .table-wrap {
   overflow: auto;

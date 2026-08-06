@@ -1,3 +1,42 @@
+.audit-search {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 760px);
+  margin-top: 20px;
+}
+
+.audit-search label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.audit-search-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.audit-search input {
+  width: 100%;
+  height: 44px;
+  padding: 10px 13px;
+  border: 1px solid #d9d1d2;
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: white;
+  outline: none;
+}
+
+.audit-search input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(143, 0, 16, 0.1);
+}
+
+.audit-search button {
+  min-width: 104px;
+  height: 44px;
+}
+
 .operation-card {
   margin-top: 20px;
   overflow: hidden;
@@ -64,6 +103,14 @@
 }
 
 @media (max-width: 650px) {
+  .audit-search-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-search button {
+    width: 100%;
+  }
+
   .operation-card {
     overflow: auto;
   }

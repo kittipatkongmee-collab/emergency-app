@@ -10,32 +10,38 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import * as L from 'leaflet';
-import { forkJoin, map as mapResult, Observable, of, switchMap } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiService } from '../../core/api.service';
-import { Incident, IncidentPage } from '../../core/models';
+import { Incident, IncidentMapPoint, IncidentPage, Pagination } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
+import { PaginationComponent } from '../../shared/pagination';
 import { IncidentLocationMapComponent } from './incident-location-map';
-
-const ACTIVE_INCIDENT_STATUSES = new Set(['RECEIVED', 'FORWARDED', 'INSPECTING', 'IN_PROGRESS']);
 
 @Component({
   standalone: true,
-  imports: [RouterLink, IncidentLocationMapComponent],
+  imports: [IncidentLocationMapComponent, PaginationComponent, RouterLink],
   templateUrl: './map.html',
   styleUrl: './map.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IncidentMapComponent implements OnInit, OnDestroy {
+  readonly pageSize = 6;
   readonly incidents = signal<Incident[]>([]);
+  readonly mapIncidents = signal<IncidentMapPoint[]>([]);
+  readonly pagination = signal<Pagination>({
+    page: 1,
+    limit: this.pageSize,
+    total: 0,
+    totalPages: 0,
+  });
   readonly selectedId = signal('');
   readonly loading = signal(true);
   readonly error = signal('');
-  readonly activeIncidents = computed(() =>
-    this.incidents().filter(
-      (incident) =>
-        ACTIVE_INCIDENT_STATUSES.has(incident.status) && this.hasValidCoordinates(incident),
-    ),
+  readonly mapLoading = signal(true);
+  readonly mapError = signal('');
+  readonly plottedIncidents = computed(() =>
+    this.mapIncidents().filter((incident) => this.hasValidCoordinates(incident)),
   );
   readonly selectedIncident = computed(
     () => this.incidents().find((incident) => incident.id === this.selectedId()) ?? null,
@@ -43,6 +49,8 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
 
   private map?: L.Map;
   private markerLayer?: L.LayerGroup;
+  private listSubscription?: Subscription;
+  private mapSubscription?: Subscription;
   private readonly realtimeCleanups: Array<() => void> = [];
 
   @ViewChild('mapContainer')
@@ -56,55 +64,89 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.load();
+    this.loadMapPoints();
+    this.load(1);
     this.realtimeCleanups.push(
-      this.realtime.on('incident.created', () => this.load(false)),
-      this.realtime.on('incident.updated', () => this.load(false)),
+      this.realtime.on('incident.created', () => this.refresh()),
+      this.realtime.on('incident.updated', () => this.refresh()),
     );
   }
 
   ngOnDestroy() {
+    this.listSubscription?.unsubscribe();
+    this.mapSubscription?.unsubscribe();
     this.realtimeCleanups.forEach((cleanup) => cleanup());
+    this.destroyMap();
+  }
+
+  load(page = this.pagination().page, showLoading = true) {
+    if (showLoading) {
+      this.loading.set(true);
+    }
+    this.error.set('');
+    this.listSubscription?.unsubscribe();
+    this.listSubscription = this.api
+      .get<IncidentPage>('admin/incidents', {
+        page: String(page),
+        limit: String(this.pageSize),
+      })
+      .subscribe({
+        next: (result) => {
+          this.incidents.set(result.items);
+          this.pagination.set(result.pagination);
+          if (!result.items.some((incident) => incident.id === this.selectedId())) {
+            this.selectedId.set(result.items[0]?.id ?? '');
+          }
+          this.loading.set(false);
+          queueMicrotask(() => this.renderMarkers(false));
+        },
+        error: () => {
+          this.error.set('ไม่สามารถโหลดตำแหน่งเหตุการณ์ได้');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  loadMapPoints(showLoading = true) {
+    if (showLoading) {
+      this.destroyMap();
+      this.mapLoading.set(true);
+    }
+    this.mapError.set('');
+    this.mapSubscription?.unsubscribe();
+    this.mapSubscription = this.api
+      .get<IncidentMapPoint[]>('admin/incidents/map-points')
+      .subscribe({
+        next: (items) => {
+          this.mapIncidents.set(items);
+          this.mapLoading.set(false);
+          queueMicrotask(() => this.renderMarkers(true));
+        },
+        error: () => {
+          this.destroyMap();
+          this.mapError.set('ไม่สามารถโหลดหมุดเหตุการณ์ทั้งหมดได้');
+          this.mapLoading.set(false);
+        },
+      });
+  }
+
+  selectPage(page: number) {
+    const current = this.pagination();
+    if (page < 1 || page > current.totalPages || page === current.page) {
+      return;
+    }
+    this.load(page);
+  }
+
+  private destroyMap() {
     this.map?.remove();
     this.map = undefined;
+    this.markerLayer = undefined;
   }
 
-  load(showLoading = true) {
-    if (showLoading) this.loading.set(true);
-    this.error.set('');
-    this.fetchAllIncidents().subscribe({
-      next: (incidents) => {
-        this.incidents.set(incidents);
-        if (!incidents.some((incident) => incident.id === this.selectedId())) {
-          this.selectedId.set(this.activeIncidents()[0]?.id ?? incidents[0]?.id ?? '');
-        }
-        this.loading.set(false);
-        queueMicrotask(() => this.renderMarkers(true));
-      },
-      error: () => {
-        this.error.set('ไม่สามารถโหลดตำแหน่งเหตุการณ์ได้');
-        this.loading.set(false);
-      },
-    });
-  }
-
-  private fetchAllIncidents(): Observable<Incident[]> {
-    return this.api.get<IncidentPage>('admin/incidents', { page: '1', limit: '100' }).pipe(
-      switchMap((firstPage) => {
-        if (firstPage.pagination.totalPages <= 1) return of(firstPage.items);
-        const remainingPages = Array.from(
-          { length: firstPage.pagination.totalPages - 1 },
-          (_, index) =>
-            this.api.get<IncidentPage>('admin/incidents', {
-              page: String(index + 2),
-              limit: '100',
-            }),
-        );
-        return forkJoin(remainingPages).pipe(
-          mapResult((pages) => [firstPage.items, ...pages.map((page) => page.items)].flat()),
-        );
-      }),
-    );
+  private refresh() {
+    this.load(this.pagination().page, false);
+    this.loadMapPoints(false);
   }
 
   select(incident: Incident) {
@@ -151,7 +193,7 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
 
     this.markerLayer.clearLayers();
     const locations: L.LatLng[] = [];
-    for (const incident of this.activeIncidents()) {
+    for (const incident of this.plottedIncidents()) {
       const location = L.latLng(Number(incident.latitude), Number(incident.longitude));
       locations.push(location);
       const selected = incident.id === this.selectedId();
@@ -172,7 +214,10 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
       address.textContent = incident.address;
       tooltip.append(caseCode, address);
       marker.bindTooltip(tooltip, { direction: 'top', offset: [0, -34] });
-      marker.on('click', () => this.select(incident));
+      marker.on('click', () => {
+        const listedIncident = this.incidents().find((item) => item.id === incident.id);
+        if (listedIncident) this.select(listedIncident);
+      });
       marker.addTo(this.markerLayer);
     }
 
@@ -185,7 +230,7 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
     this.map.fitBounds(L.latLngBounds(locations), { padding: [48, 48], maxZoom: 16 });
   }
 
-  hasValidCoordinates(incident: Incident) {
+  hasValidCoordinates(incident: Incident | IncidentMapPoint) {
     const latitude = Number(incident.latitude);
     const longitude = Number(incident.longitude);
     return (

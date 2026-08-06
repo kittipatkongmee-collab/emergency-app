@@ -33,16 +33,25 @@ describe('IncidentMapComponent', () => {
       longitude: '100.6',
       status: 'COMPLETED',
     };
+    const offPageIncident: Incident = {
+      ...baseIncident,
+      id: 'incident-off-page',
+      caseCode: 'CASE-003',
+      latitude: '14.1',
+      longitude: '101.2',
+      status: 'RECEIVED',
+    };
     const page: IncidentPage = {
       items: [baseIncident, completedIncident],
-      pagination: { page: 1, limit: 100, total: 2, totalPages: 1 },
-    };
-    const completedPage: IncidentPage = {
-      ...page,
-      items: [{ ...baseIncident, status: 'COMPLETED' }, completedIncident],
+      pagination: { page: 1, limit: 6, total: 8, totalPages: 2 },
     };
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
-    api.get.and.returnValues(of(page), of(completedPage));
+    api.get.and.returnValues(
+      of([baseIncident, completedIncident, offPageIncident]),
+      of(page),
+      of(page),
+      of([baseIncident, completedIncident, offPageIncident]),
+    );
     const realtime = jasmine.createSpyObj<RealtimeService>('RealtimeService', ['on']);
     let updatedListener: (() => void) | undefined;
     realtime.on.and.callFake((event: string, listener: () => void) => {
@@ -62,12 +71,21 @@ describe('IncidentMapComponent', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(fixture.componentInstance.activeIncidents().length).toBe(1);
-    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(1);
+    expect(fixture.componentInstance.plottedIncidents().length).toBe(3);
+    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(3);
     expect(element.querySelectorAll('app-incident-location-map').length).toBe(1);
     expect(element.querySelectorAll('.locations article').length).toBe(2);
     expect(element.querySelector('.locations article.completed')?.textContent).toContain('สำเร็จ');
-    expect(api.get).toHaveBeenCalledWith('admin/incidents', { page: '1', limit: '100' });
+    expect(element.querySelector('.map-caption a')).toBeNull();
+    expect(element.querySelector('.map-caption .selected-status')?.textContent).toContain(
+      'กำลังดำเนินการ',
+    );
+    expect(element.querySelector('#map-incident-keyword')).toBeNull();
+    expect(element.querySelector('app-pagination')).not.toBeNull();
+    expect(element.querySelector('.locations app-pagination')).toBeNull();
+    expect(element.querySelector('.locations-column > app-pagination')).not.toBeNull();
+    expect(api.get).toHaveBeenCalledWith('admin/incidents/map-points');
+    expect(api.get).toHaveBeenCalledWith('admin/incidents', { page: '1', limit: '6' });
     expect(realtime.on).toHaveBeenCalledWith('incident.updated', jasmine.any(Function));
 
     const listButtons = element.querySelectorAll<HTMLButtonElement>('.locations article > button');
@@ -84,9 +102,26 @@ describe('IncidentMapComponent', () => {
     fixture.detectChanges();
     await Promise.resolve();
 
-    expect(fixture.componentInstance.activeIncidents().length).toBe(0);
-    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(0);
+    expect(fixture.componentInstance.plottedIncidents().length).toBe(3);
+    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(3);
     expect(element.querySelectorAll('app-incident-location-map').length).toBe(1);
     expect(element.querySelectorAll('.locations article').length).toBe(2);
+  });
+
+  it('โหลดเฉพาะรายการหน้าที่เลือกโดยไม่เปลี่ยนชุดหมุดรวม', () => {
+    const emptyPage: IncidentPage = {
+      items: [],
+      pagination: { page: 2, limit: 6, total: 24, totalPages: 4 },
+    };
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    api.get.and.returnValue(of(emptyPage));
+    const realtime = jasmine.createSpyObj<RealtimeService>('RealtimeService', ['on']);
+    const component = new IncidentMapComponent(api, realtime);
+    component.pagination.set({ page: 1, limit: 6, total: 24, totalPages: 4 });
+
+    component.selectPage(2);
+
+    expect(api.get).toHaveBeenCalledWith('admin/incidents', { page: '2', limit: '6' });
+    expect(api.get).not.toHaveBeenCalledWith('admin/incidents/map-points');
   });
 });

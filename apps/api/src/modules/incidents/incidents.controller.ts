@@ -105,6 +105,11 @@ export class AdminIncidentsController {
     return this.incidents.listAdmin(query, req.user);
   }
 
+  @Get('map-points')
+  mapPoints(@Req() req: AuthenticatedRequest) {
+    return this.incidents.listMapPoints(req.user);
+  }
+
   @Get(':id')
   detail(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.incidents.adminDetail(id, req.user);

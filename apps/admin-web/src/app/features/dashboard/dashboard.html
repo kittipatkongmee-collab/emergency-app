@@ -79,18 +79,28 @@
         </div>
         <a routerLink="/incidents">ดูทั้งหมด →</a>
       </header>
-      <div class="filters" aria-label="ตัวกรองรายการแจ้งเหตุ">
+      <div class="filters" [formGroup]="filters" aria-label="ตัวกรองรายการแจ้งเหตุ">
         <label>
           <span>⌕</span>
-          <input type="search" placeholder="ค้นหาเหตุการณ์ ผู้แจ้ง รายละเอียด…" />
+          <input
+            type="search"
+            formControlName="keyword"
+            placeholder="ค้นหาเหตุการณ์ ผู้แจ้ง รายละเอียด…"
+          />
         </label>
-        <select aria-label="กรองตามสถานะ">
-          <option>สถานะทั้งหมด</option>
-          <option>รอการดำเนินการ</option>
-          <option>กำลังดำเนินการ</option>
-          <option>ภารกิจสำเร็จ</option>
-        </select>
-        <button class="btn-outline" type="button">ตัวกรอง</button>
+        <ng-select
+          id="dashboard-status"
+          class="admin-select"
+          formControlName="status"
+          [items]="statusOptions"
+          bindLabel="label"
+          bindValue="value"
+          labelForId="dashboard-status-input"
+          [clearable]="false"
+          [searchable]="false"
+          notFoundText="ไม่พบสถานะ"
+          aria-label="กรองตามสถานะ"
+        />
       </div>
       @if (incidents().length === 0) {
         <div class="state">

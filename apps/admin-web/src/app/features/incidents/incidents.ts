@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { NgSelectComponent } from '@ng-select/ng-select';
+import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { IncidentPage } from '../../core/models';
 import { BuddhistDatepickerDirective } from '../../shared/buddhist-datepicker.directive';
+import { PaginationComponent } from '../../shared/pagination';
 import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
 
 @Component({
@@ -12,6 +14,7 @@ import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
   imports: [
     BuddhistDatepickerDirective,
     NgSelectComponent,
+    PaginationComponent,
     ReactiveFormsModule,
     RouterLink,
     ThaiBuddhistDatePipe,
@@ -20,7 +23,8 @@ import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
   styleUrl: './incidents.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class IncidentsComponent implements OnInit {
+export class IncidentsComponent implements OnInit, OnDestroy {
+  readonly pageSize = 10;
   readonly loading = signal(true);
   readonly error = signal('');
   readonly result = signal<IncidentPage | null>(null);
@@ -42,11 +46,24 @@ export class IncidentsComponent implements OnInit {
     { value: 'IN_PROGRESS', label: 'กำลังดำเนินการ' },
     { value: 'COMPLETED', label: 'ภารกิจสำเร็จ' },
   ];
+  private filterSubscription?: Subscription;
 
   constructor(private readonly api: ApiService) {}
 
   ngOnInit() {
     this.load();
+    this.filterSubscription = this.filters.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(
+          (previous, current) => JSON.stringify(previous) === JSON.stringify(current),
+        ),
+      )
+      .subscribe(() => this.load(1));
+  }
+
+  ngOnDestroy() {
+    this.filterSubscription?.unsubscribe();
   }
 
   load(page = 1) {
@@ -54,7 +71,9 @@ export class IncidentsComponent implements OnInit {
     this.error.set('');
     const value = this.filters.getRawValue();
     const query = Object.fromEntries(
-      Object.entries({ ...value, page: String(page), limit: '20' }).filter(([, item]) => item),
+      Object.entries({ ...value, page: String(page), limit: String(this.pageSize) }).filter(
+        ([, item]) => item,
+      ),
     );
     this.api.get<IncidentPage>('admin/incidents', query).subscribe({
       next: (result) => {
@@ -66,6 +85,14 @@ export class IncidentsComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  selectPage(page: number) {
+    const pagination = this.result()?.pagination;
+    if (!pagination || page < 1 || page > pagination.totalPages || page === pagination.page) {
+      return;
+    }
+    this.load(page);
   }
 
   typeLabel(type: string): string {

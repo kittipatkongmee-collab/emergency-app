@@ -350,10 +350,11 @@ class HistoryTab extends ConsumerStatefulWidget {
 
 class _HistoryTabState extends ConsumerState<HistoryTab> {
   String status = '';
+  int page = 1;
 
   @override
   Widget build(BuildContext context) {
-    final provider = incidentHistoryProvider(status);
+    final provider = incidentHistoryProvider((page: page, status: status));
     final incidents = ref.watch(provider);
     return SafeArea(
       child: Scaffold(
@@ -363,7 +364,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
             PopupMenuButton<String>(
               tooltip: 'กรองตามสถานะ',
               initialValue: status,
-              onSelected: (value) => setState(() => status = value),
+              onSelected: (value) => setState(() {
+                status = value;
+                page = 1;
+              }),
               itemBuilder: (_) => const [
                 PopupMenuItem(value: '', child: Text('ทุกสถานะ')),
                 PopupMenuItem(value: 'RECEIVED', child: Text('รอดำเนินการ')),
@@ -382,7 +386,8 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) =>
               _ErrorState(onRetry: () => ref.invalidate(provider)),
-          data: (items) {
+          data: (historyPage) {
+            final items = historyPage.items;
             if (items.isEmpty) {
               return const Center(
                 child: Column(
@@ -402,16 +407,21 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
               onRefresh: () => ref.refresh(provider.future),
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
-                itemCount: items.length,
+                itemCount: items.length + (historyPage.totalPages > 0 ? 1 : 0),
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, i) {
+                  if (i == items.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 8),
+                      child: _HistoryPagination(
+                        currentPage: historyPage.page,
+                        totalPages: historyPage.totalPages,
+                        onPageSelected: (selectedPage) =>
+                            setState(() => page = selectedPage),
+                      ),
+                    );
+                  }
                   final item = items[i];
-                  final statusColor = switch (item.status) {
-                    'COMPLETED' => AppTheme.success,
-                    'IN_PROGRESS' || 'INSPECTING' => AppTheme.warning,
-                    'CANCELLED' => AppTheme.danger,
-                    _ => AppTheme.primary,
-                  };
                   return Card(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(
@@ -477,31 +487,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                                 ],
                               ),
                             ),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 105),
-                              child: Chip(
-                                backgroundColor: statusColor.withValues(
-                                  alpha: .09,
-                                ),
-                                side: BorderSide(
-                                  color: statusColor.withValues(alpha: .24),
-                                ),
-                                labelPadding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                ),
-                                label: Text(
-                                  incidentStatusLabel(item.status),
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  overflow: TextOverflow.fade,
-                                  style: TextStyle(
-                                    color: statusColor,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            IncidentStatusBadge(status: item.status),
                           ],
                         ),
                       ),
@@ -512,6 +498,95 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+List<int> visiblePageNumbers({
+  required int currentPage,
+  required int totalPages,
+  required int windowSize,
+}) {
+  if (totalPages <= 0 || windowSize <= 0) return const [];
+  final visibleCount = totalPages < windowSize ? totalPages : windowSize;
+  final latestStart = totalPages - visibleCount + 1;
+  final start = currentPage.clamp(1, latestStart);
+  return List.generate(visibleCount, (index) => start + index);
+}
+
+class _HistoryPagination extends StatelessWidget {
+  const _HistoryPagination({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageSelected,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final ValueChanged<int> onPageSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = visiblePageNumbers(
+      currentPage: currentPage,
+      totalPages: totalPages,
+      windowSize: 3,
+    );
+    return Semantics(
+      container: true,
+      label: 'เลือกหน้าประวัติการแจ้งเหตุ',
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton.outlined(
+            tooltip: 'หน้าก่อนหน้า',
+            onPressed: currentPage > 1
+                ? () => onPageSelected(currentPage - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          const SizedBox(width: 4),
+          for (final pageNumber in pages) ...[
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: TextButton(
+                onPressed: pageNumber == currentPage
+                    ? null
+                    : () => onPageSelected(pageNumber),
+                style: TextButton.styleFrom(
+                  disabledForegroundColor: Colors.white,
+                  foregroundColor: AppTheme.primaryDark,
+                  backgroundColor: pageNumber == currentPage
+                      ? AppTheme.primary
+                      : Colors.white,
+                  padding: EdgeInsets.zero,
+                  side: BorderSide(
+                    color: pageNumber == currentPage
+                        ? AppTheme.primary
+                        : AppTheme.borderColor,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  '$pageNumber',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+          IconButton.outlined(
+            tooltip: 'หน้าถัดไป',
+            onPressed: currentPage < totalPages
+                ? () => onPageSelected(currentPage + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
       ),
     );
   }

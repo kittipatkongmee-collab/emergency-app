@@ -39,6 +39,16 @@ describe('ShellComponent', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
+    const brandLogos = Array.from(
+      element.querySelectorAll<HTMLImageElement>('.identity img, .office img'),
+    );
+    expect(brandLogos.length).toBe(2);
+    expect(
+      brandLogos.every(
+        (logo) => logo.getAttribute('src') === 'images/police-aviation-logo-transparent.png',
+      ),
+    ).toBeTrue();
+    expect(brandLogos.every((logo) => logo.getAttribute('alt') === 'โลโก้กองบินตำรวจ')).toBeTrue();
     expect(element.querySelector('.nav-badge')?.textContent?.trim()).toBe('3');
     expect(element.querySelectorAll('.nav-icon svg').length).toBe(6);
     expect(element.textContent).not.toContain('ตั้งค่าระบบ');

@@ -59,7 +59,7 @@ class _HomeContent extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const RoyalThaiPoliceLogo(size: 58),
+                const PoliceAviationLogo(size: 58),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: FittedBox(
@@ -228,24 +228,52 @@ class _HomeContent extends ConsumerWidget {
                                   fontSize: 18,
                                 ),
                               ),
-                              Text(
-                                '0 2509 1520\nให้บริการตลอด 24 ชั่วโมง',
-                                style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  height: 1.4,
+                              SizedBox(height: 2),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'หากต้องการความช่วยเหลือเร่งด่วน',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'โทร. 0 2509 1520 (ตลอด 24 ชั่วโมง)',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: TextStyle(
+                                    color: AppTheme.primaryDark,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.35,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        FilledButton.icon(
+                        const SizedBox(width: 10),
+                        FilledButton.tonalIcon(
                           onPressed: () => launchPhone(context, '0 2509 1520'),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(0, 48),
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                           ),
                           icon: const Icon(Icons.phone, size: 18),
-                          label: const Text('โทรเลย'),
+                          label: const Text(
+                            'โทรเลย',
+                            maxLines: 1,
+                            softWrap: false,
+                          ),
                         ),
                       ],
                     ),

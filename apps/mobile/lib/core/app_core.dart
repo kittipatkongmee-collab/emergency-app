@@ -305,22 +305,6 @@ class PoliceAviationLogo extends StatelessWidget {
   );
 }
 
-class RoyalThaiPoliceLogo extends StatelessWidget {
-  const RoyalThaiPoliceLogo({this.size = 62, super.key});
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => SizedBox.square(
-    dimension: size,
-    child: Image.asset(
-      'assets/images/royal-thai-police-logo.png',
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      semanticLabel: 'ตราสำนักงานตำรวจแห่งชาติ',
-    ),
-  );
-}
-
 class BrandedAppBarTitle extends StatelessWidget {
   const BrandedAppBarTitle(this.title, {super.key});
   final String title;
@@ -332,8 +316,6 @@ class BrandedAppBarTitle extends StatelessWidget {
       Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
       const SizedBox(width: 10),
       const PoliceAviationLogo(size: 44),
-      const SizedBox(width: 4),
-      const RoyalThaiPoliceLogo(size: 38),
     ],
   );
 }
