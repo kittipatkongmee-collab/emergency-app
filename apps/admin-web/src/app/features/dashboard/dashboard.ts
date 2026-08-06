@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { NgSelectComponent } from '@ng-select/ng-select';
+import { debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Incident, Summary } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
@@ -11,7 +12,13 @@ import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
 
 @Component({
   standalone: true,
-  imports: [BuddhistDatepickerDirective, ReactiveFormsModule, RouterLink, ThaiBuddhistDatePipe],
+  imports: [
+    BuddhistDatepickerDirective,
+    NgSelectComponent,
+    ReactiveFormsModule,
+    RouterLink,
+    ThaiBuddhistDatePipe,
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,7 +31,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly filters = new FormGroup({
     dateFrom: new FormControl('', { nonNullable: true }),
     dateTo: new FormControl('', { nonNullable: true }),
+    keyword: new FormControl('', { nonNullable: true }),
+    status: new FormControl('', { nonNullable: true }),
   });
+  readonly statusOptions = [
+    { value: '', label: 'สถานะทั้งหมด' },
+    { value: 'RECEIVED', label: 'รอดำเนินการ' },
+    { value: 'IN_PROGRESS', label: 'กำลังดำเนินการ' },
+    { value: 'COMPLETED', label: 'ภารกิจสำเร็จ' },
+  ];
   readonly cards = [
     ['total', '▣', 'แจ้งเหตุทั้งหมด'],
     ['waiting', '◷', 'รอการดำเนินการ'],
@@ -40,7 +55,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.load();
+    const filterSubscription = this.filters.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(
+          (previous, current) => JSON.stringify(previous) === JSON.stringify(current),
+        ),
+      )
+      .subscribe(() => this.load());
     this.cleanups = [
+      () => filterSubscription.unsubscribe(),
       this.realtime.on('incident.created', () => this.load(false)),
       this.realtime.on('dashboard.summary.changed', () => this.load(false)),
     ];
@@ -59,10 +83,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     if (showLoading) this.loading.set(true);
     this.error.set('');
-    const dateQuery = Object.fromEntries(Object.entries(query).filter(([, value]) => value));
+    const dateQuery = this.compactQuery({
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
+    const recentQuery = this.compactQuery({
+      ...query,
+      keyword: query.keyword.trim(),
+    });
     forkJoin({
       summary: this.api.get<Summary>('admin/dashboard/summary', dateQuery),
-      incidents: this.api.get<Incident[]>('admin/dashboard/recent-incidents', dateQuery),
+      incidents: this.api.get<Incident[]>('admin/dashboard/recent-incidents', recentQuery),
     }).subscribe({
       next: (result) => {
         this.summary.set(result.summary);
@@ -74,6 +105,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
     });
+  }
+
+  private compactQuery(query: Record<string, string>) {
+    return Object.fromEntries(Object.entries(query).filter(([, value]) => value));
   }
 
   hasActiveDateRange() {

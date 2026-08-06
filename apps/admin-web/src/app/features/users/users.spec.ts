@@ -145,6 +145,11 @@ describe('UsersComponent', () => {
     addButton?.click();
     fixture.detectChanges();
     expect(element.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(element.querySelector('ng-select#staff-position')).not.toBeNull();
+    expect(element.querySelector('select#staff-position')).toBeNull();
+    expect(
+      getComputedStyle(element.querySelector('ng-select#staff-position')!).height,
+    ).toBe('44px');
     expect(element.querySelector('#create-staff-title')?.textContent?.trim()).toBe(
       'เพิ่มเจ้าหน้าที่',
     );
@@ -178,6 +183,28 @@ describe('UsersComponent', () => {
     });
     expect(component.positions()).toEqual([position]);
     expect(component.positionMessage()).toBe('บันทึกตำแหน่งแล้ว');
+  });
+
+  it('โหลดบัญชีเจ้าหน้าที่หน้าละ 10 รายการเมื่อเลือกหน้า', () => {
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'patch']);
+    api.get.and.returnValue(
+      of({ items: [], pagination: { page: 2, limit: 10, total: 42, totalPages: 5 } }),
+    );
+    const current: AdminUser = {
+      id: 'admin-1',
+      username: 'admin',
+      fullName: 'ผู้ดูแลระบบ',
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    };
+    const auth = { user: signal<AdminUser | null>(current) } as unknown as AuthService;
+    const component = new UsersComponent(api, auth);
+    component.pagination.set({ page: 1, limit: 10, total: 42, totalPages: 5 });
+
+    component.selectPage(2);
+
+    expect(api.get).toHaveBeenCalledOnceWith('admin/users', { page: '2', limit: '10' });
+    expect(component.pagination().page).toBe(2);
   });
 
   it('แสดงสถานะเปิดใช้งานเป็นสีเขียวและปิดใช้งานเป็นสีแดง', async () => {

@@ -81,7 +81,6 @@ flutter:
 
   assets:
     - assets/images/police-aviation-logo.png
-    - assets/images/royal-thai-police-logo.png
     - assets/images/line-logo.png
     - assets/images/home-header-background.png
     - assets/images/bell-429-global-ranger.jpg
@@ -92,6 +91,20 @@ flutter:
     - assets/images/aircraft/as365n3-dauphin/
     - assets/videos/aircraft/bell-412/
     - assets/videos/aircraft/as365n3-dauphin/
+
+  fonts:
+    - family: Sarabun
+      fonts:
+        - asset: assets/fonts/sarabun/Sarabun-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/sarabun/Sarabun-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/sarabun/Sarabun-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/sarabun/Sarabun-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/sarabun/Sarabun-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

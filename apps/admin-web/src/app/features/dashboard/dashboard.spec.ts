@@ -143,6 +143,8 @@ describe('DashboardComponent', () => {
     fixture.componentInstance.filters.setValue({
       dateFrom: '2026-08-01',
       dateTo: '2026-08-04',
+      keyword: '',
+      status: '',
     });
     fixture.componentInstance.load();
 
@@ -166,7 +168,12 @@ describe('DashboardComponent', () => {
 
     const fixture = TestBed.createComponent(DashboardComponent);
     const component = fixture.componentInstance;
-    component.filters.setValue({ dateFrom: '2026-08-05', dateTo: '2026-08-04' });
+    component.filters.setValue({
+      dateFrom: '2026-08-05',
+      dateTo: '2026-08-04',
+      keyword: '',
+      status: '',
+    });
     component.load();
 
     expect(api.get).not.toHaveBeenCalled();

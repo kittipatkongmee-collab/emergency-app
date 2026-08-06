@@ -255,6 +255,24 @@ export class IncidentsService {
     };
   }
 
+  async listMapPoints(principal: AuthPrincipal) {
+    return this.prisma.incident.findMany({
+      where: {
+        assignedAdminUserId:
+          principal.role === AdminRole.OFFICER ? principal.sub : undefined,
+      },
+      select: {
+        id: true,
+        caseCode: true,
+        latitude: true,
+        longitude: true,
+        address: true,
+        status: true,
+      },
+      orderBy: { reportedAt: 'desc' },
+    });
+  }
+
   async adminDetail(id: string, principal: AuthPrincipal) {
     const incident = await this.prisma.incident.findUnique({
       where: { id },

@@ -23,7 +23,7 @@ describe('NotificationsComponent', () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'patch', 'delete']);
     const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     api.get.and.returnValue(
-      of({ items: [notice], pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } }),
+      of({ items: [notice], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } }),
     );
     api.delete.and.returnValue(of({ deleted: true }));
     await TestBed.configureTestingModule({
@@ -39,6 +39,10 @@ describe('NotificationsComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.textContent).not.toContain('อ่านทั้งหมด');
     expect(element.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(element.querySelector('app-pagination')).not.toBeNull();
+    expect(
+      element.querySelector<HTMLButtonElement>('[aria-label="หน้า 1"]')?.textContent?.trim(),
+    ).toBe('1');
 
     fixture.componentInstance.requestRemove(notice);
     fixture.detectChanges();
@@ -53,7 +57,7 @@ describe('NotificationsComponent', () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'patch', 'delete']);
     const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     api.get.and.returnValue(
-      of({ items: [notice], pagination: { page: 1, limit: 100, total: 1, totalPages: 1 } }),
+      of({ items: [notice], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } }),
     );
     api.patch.and.returnValue(of({ read: true }));
     router.navigate.and.resolveTo(true);
@@ -71,5 +75,53 @@ describe('NotificationsComponent', () => {
 
     expect(api.patch).toHaveBeenCalledWith('notifications/notice-1/read', {});
     expect(router.navigate).toHaveBeenCalledWith(['/incidents', 'incident-1']);
+  });
+
+  it('โหลดการแจ้งเตือนหน้าละ 10 รายการเมื่อเลือกหน้า', () => {
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'patch', 'delete']);
+    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    api.get.and.returnValue(
+      of({ items: [notice], pagination: { page: 2, limit: 10, total: 45, totalPages: 5 } }),
+    );
+    const component = new NotificationsComponent(api, router);
+    component.pagination.set({ page: 1, limit: 10, total: 45, totalPages: 5 });
+
+    component.selectPage(2);
+
+    expect(api.get).toHaveBeenCalledOnceWith('notifications', { page: '2', limit: '10' });
+    expect(component.pagination().page).toBe(2);
+  });
+
+  it('แสดงเลขหน้าแจ้งเตือนครั้งละ 3 หน้าโดยเริ่มจากหน้าปัจจุบัน', async () => {
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'patch', 'delete']);
+    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    api.get.and.returnValues(
+      of({ items: [notice], pagination: { page: 1, limit: 10, total: 50, totalPages: 5 } }),
+      of({ items: [notice], pagination: { page: 2, limit: 10, total: 50, totalPages: 5 } }),
+    );
+    await TestBed.configureTestingModule({
+      imports: [NotificationsComponent],
+      providers: [
+        { provide: Router, useValue: router },
+        { provide: ApiService, useValue: api },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(NotificationsComponent);
+    fixture.detectChanges();
+    const pageLabels = () =>
+      Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+          '.page-button:not(.page-arrow)',
+        ),
+      ).map((button) => button.textContent?.trim());
+
+    expect(pageLabels()).toEqual(['1', '2', '3']);
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[aria-label="หน้า 2"]')
+      ?.click();
+    fixture.detectChanges();
+    expect(pageLabels()).toEqual(['2', '3', '4']);
+    expect(api.get).toHaveBeenCalledWith('notifications', { page: '2', limit: '10' });
   });
 });

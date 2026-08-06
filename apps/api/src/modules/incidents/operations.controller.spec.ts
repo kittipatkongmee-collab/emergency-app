@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { AdminRole } from '@prisma/client';
+import { AdminRole, IncidentStatus } from '@prisma/client';
 import type { AuthenticatedRequest } from '../../common/auth';
 import { PrismaService } from '../core/prisma.service';
 import { AdminOperationsController } from './operations.controller';
@@ -231,6 +231,44 @@ describe('AdminOperationsController dashboard date range', () => {
     });
   });
 
+  it('กรองรายการล่าสุดจากสถานะและคำค้นหา', async () => {
+    const prisma = createDashboardPrisma();
+    const controller = new AdminOperationsController(
+      prisma as unknown as PrismaService,
+    );
+
+    await controller.recent({
+      dateFrom: '2026-08-04',
+      dateTo: '2026-08-04',
+      status: IncidentStatus.IN_PROGRESS,
+      keyword: ' CASE-2026 ',
+    });
+
+    expect(prisma.incident.findMany).toHaveBeenCalledWith({
+      where: {
+        reportedAt: {
+          gte: new Date('2026-08-03T17:00:00.000Z'),
+          lt: new Date('2026-08-04T17:00:00.000Z'),
+        },
+        status: 'IN_PROGRESS',
+        OR: [
+          { caseCode: { contains: 'CASE-2026' } },
+          { reporterName: { contains: 'CASE-2026' } },
+          { reporterPhone: { contains: 'CASE-2026' } },
+          { description: { contains: 'CASE-2026' } },
+          { address: { contains: 'CASE-2026' } },
+          { province: { contains: 'CASE-2026' } },
+        ],
+      },
+      take: 5,
+      orderBy: { reportedAt: 'desc' },
+      include: {
+        images: { take: 1 },
+        assignedAdminUser: { select: { id: true, fullName: true } },
+      },
+    });
+  });
+
   it('ปฏิเสธช่วงวันที่ที่วันเริ่มต้นอยู่หลังวันสิ้นสุด', async () => {
     const prisma = createDashboardPrisma();
     const controller = new AdminOperationsController(
@@ -241,5 +279,56 @@ describe('AdminOperationsController dashboard date range', () => {
       controller.summary({ dateFrom: '2026-08-05', dateTo: '2026-08-04' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.incident.count).not.toHaveBeenCalled();
+  });
+});
+
+describe('AdminOperationsController audit search', () => {
+  it('ค้นหาประวัติจากการกระทำ ข้อมูล และชื่อผู้ดำเนินการ', async () => {
+    const prisma = {
+      auditLog: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      $transaction: jest.fn((operations: Array<Promise<unknown>>) =>
+        Promise.all(operations),
+      ),
+    };
+    const controller = new AdminOperationsController(
+      prisma as unknown as PrismaService,
+    );
+
+    await controller.audit({ page: 1, limit: 10, keyword: ' สมชาย ' });
+
+    const where = {
+      OR: [
+        { action: { contains: 'สมชาย' } },
+        { entityType: { contains: 'สมชาย' } },
+        { entityId: { contains: 'สมชาย' } },
+        { adminUser: { is: { fullName: { contains: 'สมชาย' } } } },
+      ],
+    };
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where, skip: 0, take: 10 }),
+    );
+    expect(prisma.auditLog.count).toHaveBeenCalledWith({ where });
+
+    await controller.audit({ page: 1, limit: 10, keyword: 'รับแจ้งเหตุ' });
+    expect(prisma.auditLog.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { action: { contains: 'รับแจ้งเหตุ' } },
+            { entityType: { contains: 'รับแจ้งเหตุ' } },
+            { entityId: { contains: 'รับแจ้งเหตุ' } },
+            {
+              adminUser: {
+                is: { fullName: { contains: 'รับแจ้งเหตุ' } },
+              },
+            },
+            { action: { in: ['INCIDENT_ACCEPTED'] } },
+          ],
+        },
+      }),
+    );
   });
 });

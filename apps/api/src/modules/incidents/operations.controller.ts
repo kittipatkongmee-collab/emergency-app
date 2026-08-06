@@ -12,7 +12,13 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AdminRole, PlatformType, Prisma, UserStatus } from '@prisma/client';
+import {
+  AdminRole,
+  IncidentStatus,
+  PlatformType,
+  Prisma,
+  UserStatus,
+} from '@prisma/client';
 import argon2 from 'argon2';
 import { Type } from 'class-transformer';
 import {
@@ -40,6 +46,44 @@ class PaginationDto {
   @IsOptional() @IsString() @MaxLength(100) keyword?: string;
 }
 
+const auditActionLabels: Readonly<Record<string, string>> = {
+  ADMIN_LOGIN: 'เข้าสู่ระบบหลังบ้าน',
+  ADMIN_LOGIN_FAILED: 'พยายามเข้าสู่ระบบไม่สำเร็จ',
+  ADMIN_LOGOUT: 'ออกจากระบบหลังบ้าน',
+  ADMIN_PASSWORD_CHANGED: 'เปลี่ยนรหัสผ่านของตนเอง',
+  ADMIN_CREATED: 'เพิ่มบัญชีเจ้าหน้าที่',
+  ADMIN_UPDATED: 'แก้ไขข้อมูลบัญชีเจ้าหน้าที่',
+  ADMIN_DELETED: 'ลบบัญชีเจ้าหน้าที่',
+  ADMIN_STATUS_CHANGED: 'เปลี่ยนสถานะบัญชีเจ้าหน้าที่',
+  ADMIN_PASSWORD_RESET: 'ตั้งรหัสผ่านใหม่ให้เจ้าหน้าที่',
+  INCIDENT_ACCEPTED: 'รับแจ้งเหตุเพื่อดำเนินการ',
+  INCIDENT_COMPLETED: 'ปิดงานเหตุการณ์',
+  INCIDENT_NOTE_CREATED: 'เพิ่มบันทึกในเหตุการณ์',
+  SETTINGS_UPDATED: 'ปรับปรุงการตั้งค่าระบบ',
+};
+
+const auditEntityLabels: Readonly<Record<string, string>> = {
+  AdminUser: 'บัญชีเจ้าหน้าที่',
+  Incident: 'รายการแจ้งเหตุ',
+  IncidentNote: 'บันทึกเหตุการณ์',
+  SystemSetting: 'การตั้งค่าระบบ',
+  Auth: 'บัญชีผู้ใช้งาน',
+};
+
+function matchingAuditValues(
+  labels: Readonly<Record<string, string>>,
+  keyword: string,
+) {
+  const normalizedKeyword = keyword.toLocaleLowerCase('th');
+  return Object.entries(labels)
+    .filter(
+      ([value, label]) =>
+        value.toLocaleLowerCase('en').includes(normalizedKeyword) ||
+        label.toLocaleLowerCase('th').includes(normalizedKeyword),
+    )
+    .map(([value]) => value);
+}
+
 class DashboardDateRangeDto {
   @IsOptional()
   @IsDateString()
@@ -50,6 +94,17 @@ class DashboardDateRangeDto {
   @IsDateString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   dateTo?: string;
+}
+
+class DashboardRecentIncidentsDto extends DashboardDateRangeDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  keyword?: string;
+
+  @IsOptional()
+  @IsEnum(IncidentStatus)
+  status?: IncidentStatus;
 }
 
 function dashboardDateFilter(
@@ -193,10 +248,27 @@ export class AdminOperationsController {
   }
 
   @Get('dashboard/recent-incidents')
-  recent(@Query() query: DashboardDateRangeDto) {
+  recent(@Query() query: DashboardRecentIncidentsDto) {
     const reportedAt = dashboardDateFilter(query);
+    const keyword = query.keyword?.trim();
+    const where: Prisma.IncidentWhereInput = {
+      ...(reportedAt ? { reportedAt } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { caseCode: { contains: keyword } },
+              { reporterName: { contains: keyword } },
+              { reporterPhone: { contains: keyword } },
+              { description: { contains: keyword } },
+              { address: { contains: keyword } },
+              { province: { contains: keyword } },
+            ],
+          }
+        : {}),
+    };
     return this.prisma.incident.findMany({
-      where: reportedAt ? { reportedAt } : undefined,
+      where: Object.keys(where).length ? where : undefined,
       take: 5,
       orderBy: { reportedAt: 'desc' },
       include: {
@@ -527,15 +599,25 @@ export class AdminOperationsController {
   @Get('audit-logs')
   @Roles(AdminRole.SUPER_ADMIN, AdminRole.SUPERVISOR)
   async audit(@Query() query: PaginationDto) {
-    const where: Prisma.AuditLogWhereInput = query.keyword
-      ? {
-          OR: [
-            { action: { contains: query.keyword } },
-            { entityType: { contains: query.keyword } },
-            { entityId: { contains: query.keyword } },
-          ],
-        }
-      : {};
+    const keyword = query.keyword?.trim();
+    const actionMatches = keyword
+      ? matchingAuditValues(auditActionLabels, keyword)
+      : [];
+    const entityMatches = keyword
+      ? matchingAuditValues(auditEntityLabels, keyword)
+      : [];
+    const filters: Prisma.AuditLogWhereInput[] = keyword
+      ? [
+          { action: { contains: keyword } },
+          { entityType: { contains: keyword } },
+          { entityId: { contains: keyword } },
+          { adminUser: { is: { fullName: { contains: keyword } } } },
+        ]
+      : [];
+    if (actionMatches.length) filters.push({ action: { in: actionMatches } });
+    if (entityMatches.length)
+      filters.push({ entityType: { in: entityMatches } });
+    const where: Prisma.AuditLogWhereInput = keyword ? { OR: filters } : {};
     const [items, total] = await this.prisma.$transaction([
       this.prisma.auditLog.findMany({
         where,

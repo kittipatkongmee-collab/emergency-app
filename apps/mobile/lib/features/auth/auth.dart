@@ -371,7 +371,7 @@ class LoginScreen extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          RoyalThaiPoliceLogo(size: 64),
+                          PoliceAviationLogo(size: 64),
                           SizedBox(width: 14),
                           Flexible(
                             child: Text(

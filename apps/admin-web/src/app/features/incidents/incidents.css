@@ -63,24 +63,6 @@ td small {
   white-space: nowrap;
 }
 
-.list footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
-  color: var(--text-secondary);
-}
-
-.list footer div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.list footer button {
-  padding: 7px 12px;
-}
-
 @media (max-width: 1200px) {
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -103,9 +85,4 @@ td small {
     grid-column: 1;
   }
 
-  .list footer {
-    align-items: flex-start;
-    gap: 12px;
-    flex-direction: column;
-  }
 }

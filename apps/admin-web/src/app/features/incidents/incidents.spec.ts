@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
@@ -14,7 +14,7 @@ interface FlatpickrInput extends HTMLInputElement {
 describe('IncidentsComponent', () => {
   const emptyPage: IncidentPage = {
     items: [],
-    pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
   };
 
   it('แสดงตัวกรองตามลำดับ วันที่เริ่มต้น วันที่สิ้นสุด ค้นหา ปุ่มค้นหา ประเภท และสถานะ', async () => {
@@ -53,7 +53,7 @@ describe('IncidentsComponent', () => {
     expect(element.querySelector('#incident-priority')).toBeNull();
     expect(element.querySelector('#incident-sort')).toBeNull();
     expect(element.querySelector('#incident-order')).toBeNull();
-    expect(api.get).toHaveBeenCalledWith('admin/incidents', { page: '1', limit: '20' });
+    expect(api.get).toHaveBeenCalledWith('admin/incidents', { page: '1', limit: '10' });
   });
 
   it('ส่งประเภทและสถานะที่เลือกไปกรองรายการแจ้งเหตุ', async () => {
@@ -76,8 +76,47 @@ describe('IncidentsComponent', () => {
       type: 'DISASTER_RELIEF',
       status: 'IN_PROGRESS',
       page: '1',
-      limit: '20',
+      limit: '10',
     });
+  });
+
+  it('โหลดหน้าแรกอัตโนมัติเมื่อเปลี่ยนตัวกรองหรือวันที่', fakeAsync(() => {
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    api.get.and.returnValue(of(emptyPage));
+    const component = new IncidentsComponent(api);
+
+    component.ngOnInit();
+    component.filters.patchValue({
+      dateFrom: '2026-08-04',
+      status: 'IN_PROGRESS',
+    });
+    tick(251);
+
+    expect(api.get).toHaveBeenCalledWith('admin/incidents', {
+      dateFrom: '2026-08-04',
+      status: 'IN_PROGRESS',
+      page: '1',
+      limit: '10',
+    });
+
+    component.ngOnDestroy();
+  }));
+
+  it('โหลดรายการแจ้งเหตุหน้าละ 10 รายการเมื่อเลือกหน้า', () => {
+    const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    api.get.and.returnValue(
+      of({ items: [], pagination: { page: 2, limit: 10, total: 48, totalPages: 5 } }),
+    );
+    const component = new IncidentsComponent(api);
+    component.result.set({
+      items: [],
+      pagination: { page: 1, limit: 10, total: 48, totalPages: 5 },
+    });
+
+    component.selectPage(2);
+
+    expect(api.get).toHaveBeenCalledOnceWith('admin/incidents', { page: '2', limit: '10' });
+    expect(component.result()?.pagination.page).toBe(2);
   });
 
   it('ใช้ Flatpickr โดยแสดงวัน เดือน ปี พ.ศ. แต่ส่งค่า API เป็นวันที่มาตรฐาน', async () => {
@@ -126,7 +165,7 @@ describe('IncidentsComponent', () => {
         { ...baseIncident, id: 'working', status: 'IN_PROGRESS' },
         { ...baseIncident, id: 'complete', status: 'COMPLETED' },
       ],
-      pagination: { page: 1, limit: 20, total: 3, totalPages: 1 },
+      pagination: { page: 1, limit: 10, total: 3, totalPages: 1 },
     };
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
     api.get.and.returnValue(of(page));

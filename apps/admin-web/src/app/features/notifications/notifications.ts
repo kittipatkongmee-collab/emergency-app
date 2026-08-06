@@ -2,18 +2,26 @@ import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
-import { NotificationItem, Page } from '../../core/models';
+import { NotificationItem, Page, Pagination } from '../../core/models';
+import { PaginationComponent } from '../../shared/pagination';
 import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
 
 @Component({
   standalone: true,
-  imports: [ThaiBuddhistDatePipe],
+  imports: [PaginationComponent, ThaiBuddhistDatePipe],
   templateUrl: './notifications.html',
   styleUrl: './notifications.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotificationsComponent implements OnInit {
+  readonly pageSize = 10;
   readonly items = signal<NotificationItem[]>([]);
+  readonly pagination = signal<Pagination>({
+    page: 1,
+    limit: this.pageSize,
+    total: 0,
+    totalPages: 0,
+  });
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal('');
@@ -29,19 +37,32 @@ export class NotificationsComponent implements OnInit {
     this.load();
   }
 
-  load() {
+  load(page = this.pagination().page) {
     this.loading.set(true);
     this.error.set('');
-    this.api.get<Page<NotificationItem>>('notifications', { limit: '100' }).subscribe({
-      next: (result) => {
-        this.items.set(result.items);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('ไม่สามารถโหลดการแจ้งเตือนได้');
-        this.loading.set(false);
-      },
-    });
+    this.api
+      .get<Page<NotificationItem>>('notifications', {
+        page: String(page),
+        limit: String(this.pageSize),
+      })
+      .subscribe({
+        next: (result) => {
+          this.items.set(result.items);
+          this.pagination.set(result.pagination);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('ไม่สามารถโหลดการแจ้งเตือนได้');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  selectPage(page: number) {
+    if (page < 1 || page > this.pagination().totalPages || page === this.pagination().page) {
+      return;
+    }
+    this.load(page);
   }
 
   read(notice: NotificationItem) {

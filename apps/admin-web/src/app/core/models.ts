@@ -104,6 +104,11 @@ export interface Incident {
 
 export type IncidentPage = Page<Incident>;
 
+export type IncidentMapPoint = Pick<
+  Incident,
+  'id' | 'caseCode' | 'latitude' | 'longitude' | 'address' | 'status'
+>;
+
 export interface NotificationItem {
   id: string;
   incidentId?: string;

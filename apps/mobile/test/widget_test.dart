@@ -2,13 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:police_incident_mobile/core/app_core.dart';
 import 'package:police_incident_mobile/features/auth/auth.dart';
+import 'package:police_incident_mobile/features/home/home.dart';
 import 'package:police_incident_mobile/features/home/operational_home.dart';
 import 'package:police_incident_mobile/features/information/information.dart';
 import 'package:police_incident_mobile/features/incidents/incidents.dart';
 
+class _FakeNotificationDataSource implements NotificationDataSource {
+  _FakeNotificationDataSource(this.pages);
+
+  final Map<int, NotificationPageData> pages;
+  final List<({int page, int limit})> requests = [];
+
+  @override
+  Future<NotificationPageData> listPage({
+    required int page,
+    required int limit,
+  }) async {
+    requests.add((page: page, limit: limit));
+    return pages[page]!;
+  }
+
+  @override
+  Future<void> read(String id) async {}
+
+  @override
+  Future<void> readAll() async {}
+}
+
 void main() {
+  test('ใช้ฟอนต์ Sarabun เป็นฟอนต์หลักทั้งแอป', () {
+    expect(AppTheme.light.textTheme.bodyMedium?.fontFamily, 'Sarabun');
+    expect(AppTheme.light.appBarTheme.titleTextStyle?.fontFamily, 'Sarabun');
+  });
+
   group('ข้อมูลการแจ้งเหตุ', () {
     test('แปลงพิกัดเป็นทศนิยม 7 ตำแหน่ง', () {
       const draft = ReportDraft(
@@ -44,6 +73,127 @@ void main() {
       expect(incidentStatusLabel('COMPLETED'), 'ภารกิจสำเร็จ');
       expect(incidentStatusLabel('CANCELLED'), 'ยกเลิก');
       expect(incidentStatusLabel('UNKNOWN'), 'ไม่ทราบสถานะ');
+    });
+
+    test('แสดงเลขหน้าประวัติครั้งละ 3 หน้าโดยเริ่มจากหน้าปัจจุบัน', () {
+      expect(visiblePageNumbers(currentPage: 1, totalPages: 8, windowSize: 3), [
+        1,
+        2,
+        3,
+      ]);
+      expect(visiblePageNumbers(currentPage: 2, totalPages: 8, windowSize: 3), [
+        2,
+        3,
+        4,
+      ]);
+      expect(visiblePageNumbers(currentPage: 8, totalPages: 8, windowSize: 3), [
+        6,
+        7,
+        8,
+      ]);
+    });
+
+    test('หน้าแจ้งเตือนโหลดครั้งละ 9 รายการและต่อท้ายเมื่อโหลดเพิ่ม', () async {
+      AppNotification notification(int index) => AppNotification(
+        id: 'notification-$index',
+        title: 'การแจ้งเตือน $index',
+        message: 'รายละเอียด $index',
+        createdAt: '2026-08-01T06:00:00.000Z',
+        isRead: false,
+      );
+
+      final source = _FakeNotificationDataSource({
+        1: NotificationPageData(
+          items: List.generate(9, (index) => notification(index + 1)),
+          page: 1,
+          total: 12,
+          totalPages: 2,
+        ),
+        2: NotificationPageData(
+          items: List.generate(3, (index) => notification(index + 10)),
+          page: 2,
+          total: 12,
+          totalPages: 2,
+        ),
+      });
+      final container = ProviderContainer(
+        overrides: [notificationRepositoryProvider.overrideWithValue(source)],
+      );
+      final subscription = container.listen(
+        notificationsProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        subscription.close();
+        container.dispose();
+      });
+
+      final firstPage = await container.read(notificationsProvider.future);
+      expect(firstPage.items, hasLength(9));
+      expect(source.requests, [(page: 1, limit: 9)]);
+
+      await container.read(notificationsProvider.notifier).loadMore();
+      final completedFeed = container.read(notificationsProvider).valueOrNull!;
+      expect(completedFeed.items, hasLength(12));
+      expect(completedFeed.hasMore, isFalse);
+      expect(source.requests, [(page: 1, limit: 9), (page: 2, limit: 9)]);
+
+      await container.read(notificationsProvider.notifier).loadMore();
+      expect(source.requests, hasLength(2));
+    });
+
+    testWidgets('ป้ายสถานะใช้สีไล่เฉดและเงาตามหน้าเว็บ', (tester) async {
+      const expectedColors = {
+        'RECEIVED': [Color(0xFFFF394B), Color(0xFFDF001C)],
+        'IN_PROGRESS': [Color(0xFFFFC928), Color(0xFFF29A00)],
+        'COMPLETED': [Color(0xFF2BCF65), Color(0xFF07983D)],
+      };
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                IncidentStatusBadge(
+                  key: Key('status-received'),
+                  status: 'RECEIVED',
+                ),
+                IncidentStatusBadge(
+                  key: Key('status-in-progress'),
+                  status: 'IN_PROGRESS',
+                ),
+                IncidentStatusBadge(
+                  key: Key('status-completed'),
+                  status: 'COMPLETED',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      for (final MapEntry(key: status, value: colors)
+          in expectedColors.entries) {
+        final badge = find.byKey(
+          Key('status-${status.toLowerCase().replaceAll('_', '-')}'),
+        );
+        final container = tester.widget<Container>(
+          find.descendant(of: badge, matching: find.byType(Container)),
+        );
+        final decoration = container.decoration! as BoxDecoration;
+        final gradient = decoration.gradient! as LinearGradient;
+
+        expect(gradient.colors, colors);
+        expect(decoration.boxShadow, isNotEmpty);
+      }
+
+      for (final label in ['รอดำเนินการ', 'กำลังดำเนินการ', 'ภารกิจสำเร็จ']) {
+        final text = tester.widget<Text>(find.text(label));
+        expect(text.style?.color, Colors.white);
+        expect(text.maxLines, 1);
+        expect(text.softWrap, isFalse);
+      }
     });
 
     testWidgets('หน้าแจ้งเหตุแสดงประเภทที่เลือกแล้ว', (tester) async {
@@ -297,7 +447,7 @@ void main() {
             (widget.image as AssetImage).assetName ==
                 'assets/images/police-aviation-logo.png',
       );
-      expect(tester.getCenter(aviationLogo).dx, closeTo(205.5, 1));
+      expect(tester.getCenter(aviationLogo.first).dx, closeTo(205.5, 1));
       expect(tester.getCenter(find.byType(Card)).dx, closeTo(205.5, 1));
 
       final headingBottom = tester
@@ -402,11 +552,14 @@ void main() {
           .whereType<AssetImage>()
           .map((image) => image.assetName);
       expect(
+        logoAssets
+            .where((asset) => asset == 'assets/images/police-aviation-logo.png')
+            .length,
+        greaterThanOrEqualTo(2),
+      );
+      expect(
         logoAssets,
-        containsAll([
-          'assets/images/royal-thai-police-logo.png',
-          'assets/images/police-aviation-logo.png',
-        ]),
+        isNot(contains('assets/images/royal-thai-police-logo.png')),
       );
       final realtimeCaption = tester.widget<Text>(
         find.text('แจ้งเหตุได้รวดเร็ว ติดตามสถานะได้แบบเรียลไทม์'),
@@ -421,10 +574,16 @@ void main() {
       );
       expect(trackingButtonText.maxLines, 1);
       expect(trackingButtonText.softWrap, isFalse);
-      expect(
-        find.text('0 2509 1520\nให้บริการตลอด 24 ชั่วโมง'),
-        findsOneWidget,
+      final emergencyDescription = tester.widget<Text>(
+        find.text('หากต้องการความช่วยเหลือเร่งด่วน'),
       );
+      expect(emergencyDescription.maxLines, 1);
+      expect(emergencyDescription.softWrap, isFalse);
+      final emergencyPhone = tester.widget<Text>(
+        find.text('โทร. 0 2509 1520 (ตลอด 24 ชั่วโมง)'),
+      );
+      expect(emergencyPhone.maxLines, 1);
+      expect(emergencyPhone.softWrap, isFalse);
       expect(find.textContaining('กองบินตำรวจ 0 2509 1520'), findsNothing);
       expect(find.text('แจ้งเหตุใหม่'), findsOneWidget);
       expect(find.text('ยังไม่มีรายการแจ้งเหตุ'), findsNothing);
@@ -432,6 +591,49 @@ void main() {
         find.text('เมื่อแจ้งเหตุแล้ว รายการล่าสุดจะแสดงที่นี่'),
         findsNothing,
       );
+    });
+
+    testWidgets('หน้าประวัติแสดงปุ่มหน้า 1 เมื่อมีข้อมูลเพียงหน้าเดียว', (
+      tester,
+    ) async {
+      await initializeDateFormatting('th');
+      final incident = Incident(
+        id: 'incident-1',
+        caseCode: 'CASE-001',
+        reporterName: 'ผู้แจ้ง',
+        reporterPhone: '0812345678',
+        type: 'AIRCRAFT_ACCIDENT',
+        description: 'รายละเอียดเหตุการณ์',
+        latitude: '13.7563',
+        longitude: '100.5018',
+        address: 'กรุงเทพมหานคร',
+        status: 'COMPLETED',
+        reportedAt: '2026-08-01T06:00:00.000Z',
+        images: const [],
+        history: const [],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            incidentHistoryProvider.overrideWith(
+              (_, __) async => IncidentPageData(
+                items: [incident],
+                page: 1,
+                limit: 10,
+                total: 1,
+                totalPages: 1,
+              ),
+            ),
+          ],
+          child: MaterialApp(theme: AppTheme.light, home: const HistoryTab()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('CASE-001'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.byTooltip('หน้าก่อนหน้า'), findsOneWidget);
+      expect(find.byTooltip('หน้าถัดไป'), findsOneWidget);
     });
   });
 

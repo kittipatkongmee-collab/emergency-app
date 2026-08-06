@@ -41,6 +41,20 @@ describe('AuditComponent', () => {
     expect(api.get).toHaveBeenCalledWith('admin/audit-logs', { page: '2', limit: '10' });
   });
 
+  it('ค้นหาประวัติจากฐานข้อมูลและเริ่มที่หน้าแรก', () => {
+    const { component, api } = createComponent();
+    component.pagination.set({ page: 3, limit: 10, total: 35, totalPages: 4 });
+    component.keyword.setValue('สมชาย');
+
+    component.search();
+
+    expect(api.get).toHaveBeenCalledWith('admin/audit-logs', {
+      page: '1',
+      limit: '10',
+      keyword: 'สมชาย',
+    });
+  });
+
   it('แสดงการกระทำและข้อมูลเป็นภาษาไทยที่เข้าใจง่าย', () => {
     const { component } = createComponent();
 
@@ -75,5 +89,9 @@ describe('AuditComponent', () => {
     );
     expect(element.querySelector('.pagination')?.textContent).toContain('แสดง 1–10 จาก 35 รายการ');
     expect(element.querySelectorAll('.page-button.active').length).toBe(1);
+    expect(element.querySelector<HTMLInputElement>('#audit-keyword')).not.toBeNull();
+    expect(element.querySelector<HTMLButtonElement>('.audit-search button')?.textContent).toContain(
+      'ค้นหา',
+    );
   });
 });

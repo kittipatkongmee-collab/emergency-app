@@ -21,7 +21,6 @@
       <header class="dialog-header">
         <div>
           <h2 id="create-staff-title">เพิ่มเจ้าหน้าที่</h2>
-          <p class="muted">กรอกข้อมูลบัญชีและกำหนดสิทธิ์การใช้งาน</p>
         </div>
         <button
           type="button"
@@ -39,13 +38,21 @@
           <input id="staff-name" autocomplete="name" formControlName="fullName" />
         </div>
         <div class="field">
-          <label for="staff-position">ตำแหน่ง</label>
-          <select id="staff-position" formControlName="positionId">
-            <option value="" disabled>เลือกตำแหน่ง</option>
-            @for (position of positions(); track position.id) {
-              <option [value]="position.id">{{ position.name }}</option>
-            }
-          </select>
+          <label for="staff-position-input">ตำแหน่ง</label>
+          <ng-select
+            id="staff-position"
+            class="admin-select staff-position-select"
+            formControlName="positionId"
+            [items]="positions()"
+            bindLabel="name"
+            bindValue="id"
+            labelForId="staff-position-input"
+            placeholder="เลือกตำแหน่ง"
+            appendTo="body"
+            dropdownPosition="bottom"
+            [clearable]="false"
+            notFoundText="ไม่พบตำแหน่ง"
+          />
           @if (!positions().length) {
             <small class="field-hint">กรุณาเพิ่มตำแหน่งก่อนเพิ่มเจ้าหน้าที่</small>
           }
@@ -96,7 +103,6 @@
       <header class="dialog-header">
         <div>
           <h2 id="position-dialog-title">จัดการตำแหน่ง</h2>
-          <p class="muted">เพิ่มชื่อตำแหน่งสำหรับกำหนดให้เจ้าหน้าที่</p>
         </div>
         <button
           type="button"
@@ -346,5 +352,8 @@
         }
       </tbody>
     </table>
+    @if (pagination().totalPages > 1) {
+      <app-pagination [pagination]="pagination()" (pageChange)="selectPage($event)" />
+    }
   }
 </section>

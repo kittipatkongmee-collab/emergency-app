@@ -61,6 +61,13 @@
   gap: 16px;
 }
 
+.staff-position-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+}
+
 .field-hint {
   color: var(--warning);
 }

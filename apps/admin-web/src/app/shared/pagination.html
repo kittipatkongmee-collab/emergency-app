@@ -1,0 +1,32 @@
+<nav class="pagination" aria-label="เลือกหน้ารายการ">
+  <button
+    type="button"
+    class="page-button page-arrow"
+    aria-label="หน้าก่อนหน้า"
+    [disabled]="pagination.page === 1"
+    (click)="selectPage(pagination.page - 1)"
+  >
+    ‹
+  </button>
+  @for (page of visiblePages; track page) {
+    <button
+      type="button"
+      class="page-button"
+      [class.active]="page === pagination.page"
+      [attr.aria-current]="page === pagination.page ? 'page' : null"
+      [attr.aria-label]="'หน้า ' + page"
+      (click)="selectPage(page)"
+    >
+      {{ page }}
+    </button>
+  }
+  <button
+    type="button"
+    class="page-button page-arrow"
+    aria-label="หน้าถัดไป"
+    [disabled]="pagination.page === pagination.totalPages"
+    (click)="selectPage(pagination.page + 1)"
+  >
+    ›
+  </button>
+</nav>

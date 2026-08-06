@@ -79,4 +79,11 @@
       </div>
     </article>
   }
+  @if (!loading() && !error() && pagination().totalPages > 0) {
+    <app-pagination
+      [pagination]="pagination()"
+      [windowSize]="3"
+      (pageChange)="selectPage($event)"
+    />
+  }
 </section>
