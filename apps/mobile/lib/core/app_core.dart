@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AppCopy {
   static const unitName =
-      'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)';
-  static const unitNameTwoLine =
-      'หน่วยค้นหาและช่วยเหลืออากาศยาน\nและเรือที่ประสบภัย (SRU)';
+      'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)';
+  static const unitNameMultiline =
+      'หน่วยค้นหาและช่วยเหลืออากาศยาน\nและเรือที่ประสบภัย กองบินตำรวจ(SRU)';
 }
 
 class Environment {
@@ -308,7 +308,7 @@ class PoliceAviationLogo extends StatelessWidget {
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
       semanticLabel:
-          'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+          'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)',
     ),
   );
 }

@@ -1,10 +1,31 @@
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const packageManager = "pnpm";
 const children = new Set();
 let shuttingDown = false;
+
+export function findDockerDesktopExecutable(
+  environment = process.env,
+  fileExists = existsSync,
+) {
+  const candidates = [
+    environment.ProgramFiles
+      ? path.join(
+          environment.ProgramFiles,
+          "Docker",
+          "Docker",
+          "Docker Desktop.exe",
+        )
+      : undefined,
+    environment.LOCALAPPDATA
+      ? path.join(environment.LOCALAPPDATA, "Docker", "Docker Desktop.exe")
+      : undefined,
+  ].filter(Boolean);
+  return candidates.find((candidate) => fileExists(candidate));
+}
 
 export function selectWorkspaceApiTargets(processes) {
   return processes.filter(
@@ -62,6 +83,94 @@ function findRunningWorkspaceApiProcesses() {
 function wait(milliseconds) {
   return new Promise((resolvePromise) =>
     setTimeout(resolvePromise, milliseconds),
+  );
+}
+
+export function parseDockerDesktopStatus(output) {
+  try {
+    const parsed = JSON.parse(output);
+    return typeof parsed.Status === "string"
+      ? parsed.Status.toLowerCase()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getDockerDesktopStatus() {
+  if (process.platform !== "win32") return undefined;
+  const result = spawnSync(
+    "docker",
+    ["desktop", "status", "--format", "json"],
+    {
+      encoding: "utf8",
+      windowsHide: true,
+    },
+  );
+  if (result.status !== 0) return undefined;
+  return parseDockerDesktopStatus(result.stdout);
+}
+
+function dockerEngineIsReady() {
+  const desktopStatus = getDockerDesktopStatus();
+  if (desktopStatus && desktopStatus !== "running") return false;
+  const result = spawnSync(
+    "docker",
+    ["info", "--format", "{{.ServerVersion}}"],
+    {
+      encoding: "utf8",
+      stdio: "ignore",
+      windowsHide: true,
+    },
+  );
+  return result.status === 0;
+}
+
+async function ensureDockerReady() {
+  if (dockerEngineIsReady()) return;
+  if (process.platform !== "win32") {
+    throw new Error(
+      "ยังเชื่อมต่อ Docker ไม่ได้ กรุณาเปิด Docker daemon แล้วลองใหม่",
+    );
+  }
+
+  const executable = findDockerDesktopExecutable();
+  if (!executable) {
+    throw new Error(
+      "ไม่พบ Docker Desktop กรุณาติดตั้งหรือเปิด Docker Desktop แล้วลองใหม่",
+    );
+  }
+
+  if (getDockerDesktopStatus() !== "starting") {
+    console.log(
+      "[เริ่มระบบ] Docker Desktop ยังไม่ทำงาน กำลังเปิดให้อัตโนมัติ...",
+    );
+    const dockerDesktop = spawn(executable, ["--minimized"], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    dockerDesktop.unref();
+  } else {
+    console.log("[เริ่มระบบ] Docker Desktop กำลังเริ่มทำงาน รอสักครู่...");
+  }
+
+  const timeoutAt = Date.now() + 180_000;
+  let nextProgressAt = Date.now() + 10_000;
+  while (Date.now() < timeoutAt) {
+    await wait(2_000);
+    if (dockerEngineIsReady()) {
+      console.log("[เริ่มระบบ] Docker Desktop พร้อมใช้งานแล้ว");
+      return;
+    }
+    if (Date.now() >= nextProgressAt) {
+      console.log("[เริ่มระบบ] กำลังรอ Docker Desktop เตรียมระบบ...");
+      nextProgressAt = Date.now() + 10_000;
+    }
+  }
+
+  throw new Error(
+    "Docker Desktop ยังไม่พร้อมภายใน 3 นาที กรุณาตรวจสอบหน้าต่าง Docker Desktop แล้วลอง pnpm start อีกครั้ง",
   );
 }
 
@@ -190,6 +299,7 @@ function shutdown(exitCode = 0) {
 async function main() {
   await stopRunningWorkspaceApi();
   stopRunningWorkspaceWeb();
+  await ensureDockerReady();
   console.log("\n[เริ่มระบบ] กำลังเปิดฐานข้อมูล MySQL...");
   await runAndWait(packageManager, ["db:start"]);
   console.log("[เริ่มระบบ] กำลังตรวจและอัปเดตโครงสร้างฐานข้อมูล...");

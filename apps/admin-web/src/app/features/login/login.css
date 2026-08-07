@@ -60,19 +60,20 @@
   content: '';
 }
 
-.eyebrow span {
+.eyebrow > .unit-name {
+  display: grid;
+  gap: 1px;
   max-width: min(620px, 82%);
+  text-wrap: balance;
 }
 
-.eyebrow span::before,
-.eyebrow span::after {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin: 0 10px 2px;
-  border: 2px solid #c99a3d;
-  content: '';
-  transform: rotate(45deg);
+.eyebrow .unit-name-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.unit-name-tail {
+  white-space: nowrap;
 }
 
 .brand h1 {
@@ -329,6 +330,15 @@ form {
   line-height: 1.35;
 }
 
+.login-footer > span {
+  max-width: min(680px, 46vw);
+  text-wrap: balance;
+}
+
+.login-footer .unit-name-tail {
+  display: inline-block;
+}
+
 .login-footer i {
   width: 5px;
   height: 5px;
@@ -389,6 +399,11 @@ form {
     row-gap: 4px;
     padding: 12px 14px max(12px, env(safe-area-inset-bottom));
     font-size: 0.74rem;
+  }
+
+  .login-footer > span {
+    flex: 1 1 100%;
+    max-width: 100%;
   }
 
   .field input,

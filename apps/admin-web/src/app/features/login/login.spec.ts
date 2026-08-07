@@ -21,11 +21,25 @@ describe('LoginComponent', () => {
     const logo = element.querySelector<HTMLImageElement>('.brand-mark img');
     expect(logo?.getAttribute('src')).toBe('images/police-aviation-logo-transparent.png');
     expect(logo?.getAttribute('alt')).toBe(
-      'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+      'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)',
     );
-    expect(element.querySelector('.brand .eyebrow')?.textContent?.trim()).toBe(
-      'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+    expect(
+      element.querySelector('.brand .eyebrow')?.textContent?.replace(/\s+/g, ' ').trim(),
+    ).toBe(
+      'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)',
     );
+    expect(
+      Array.from(element.querySelectorAll<HTMLElement>('.unit-name-line')).map((line) =>
+        line.textContent?.trim(),
+      ),
+    ).toEqual([
+      'หน่วยค้นหาและช่วยเหลืออากาศยาน',
+      'และเรือที่ประสบภัย กองบินตำรวจ(SRU)',
+    ]);
+    expect(
+      getComputedStyle(element.querySelector<HTMLElement>('.unit-name-line:last-child')!)
+        .whiteSpace,
+    ).toBe('nowrap');
     expect(element.querySelector('.officer-icon svg')).not.toBeNull();
     expect(element.querySelector('.smart-card')).toBeNull();
     expect(element.querySelector('.help')).toBeNull();

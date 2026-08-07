@@ -47,7 +47,7 @@ describe('ShellComponent', () => {
       'images/police-aviation-logo-transparent.png',
     );
     expect(brandLogos[0].getAttribute('alt')).toBe(
-      'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)',
+      'โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)',
     );
     expect(brandLogos[1].getAttribute('src')).toBe('images/royal-thai-police-logo.png');
     expect(brandLogos[1].getAttribute('alt')).toBe('ตราสำนักงานตำรวจแห่งชาติ');
@@ -57,8 +57,11 @@ describe('ShellComponent', () => {
     ).map((line) => line.textContent?.trim());
     expect(identityTitleLines).toEqual([
       'หน่วยค้นหาและช่วยเหลืออากาศยาน',
-      'และเรือที่ประสบภัย (SRU)',
+      'และเรือที่ประสบภัย กองบินตำรวจ(SRU)',
     ]);
+    const identityTitleTail = element.querySelector<HTMLElement>('.identity-title-tail');
+    expect(getComputedStyle(identityTitleTail!).whiteSpace).toBe('nowrap');
+    expect(identityTitleTail!.scrollWidth).toBeLessThanOrEqual(identityTitleTail!.clientWidth);
     expect(element.querySelectorAll('.nav-icon svg').length).toBe(6);
     expect(element.querySelectorAll('.mobile-tabs a').length).toBe(4);
     expect(element.querySelector('.mobile-header-brand')).not.toBeNull();
