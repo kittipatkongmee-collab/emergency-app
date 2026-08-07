@@ -2,9 +2,44 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  findDockerDesktopExecutable,
+  parseDockerDesktopStatus,
   selectWorkspaceApiTargets,
   selectWorkspaceWebTargets,
 } from "./start-development.mjs";
+
+test("finds Docker Desktop from Program Files", () => {
+  const environment = {
+    ProgramFiles: "C:\\Program Files",
+    LOCALAPPDATA: "C:\\Users\\tester\\AppData\\Local",
+  };
+  const expected =
+    "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe";
+
+  assert.equal(
+    findDockerDesktopExecutable(
+      environment,
+      (candidate) => candidate === expected,
+    ),
+    expected,
+  );
+});
+
+test("returns undefined when Docker Desktop is not installed", () => {
+  assert.equal(
+    findDockerDesktopExecutable(
+      { ProgramFiles: "C:\\Program Files" },
+      () => false,
+    ),
+    undefined,
+  );
+});
+
+test("reads Docker Desktop readiness from JSON status", () => {
+  assert.equal(parseDockerDesktopStatus('{"Status":"running"}'), "running");
+  assert.equal(parseDockerDesktopStatus('{"Status":"starting"}'), "starting");
+  assert.equal(parseDockerDesktopStatus("invalid"), undefined);
+});
 
 test("selects both the Nest watcher and detached API process", () => {
   const processes = [

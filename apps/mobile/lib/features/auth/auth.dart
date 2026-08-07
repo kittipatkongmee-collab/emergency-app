@@ -229,7 +229,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              AppCopy.unitNameTwoLine,
+              AppCopy.unitNameMultiline,
               maxLines: 2,
               softWrap: false,
               textAlign: TextAlign.center,
@@ -281,7 +281,7 @@ class LoginScreen extends ConsumerWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            AppCopy.unitNameTwoLine,
+                            AppCopy.unitNameMultiline,
                             key: Key('login-unit-heading'),
                             maxLines: 2,
                             softWrap: false,
@@ -393,7 +393,7 @@ class LoginScreen extends ConsumerWidget {
                                   fit: BoxFit.scaleDown,
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                    AppCopy.unitNameTwoLine,
+                                    AppCopy.unitNameMultiline,
                                     key: Key('login-contact-unit-name'),
                                     maxLines: 2,
                                     softWrap: false,

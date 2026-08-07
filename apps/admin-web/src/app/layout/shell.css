@@ -45,6 +45,10 @@ aside::before {
   line-height: inherit;
   white-space: nowrap;
 }
+.identity .identity-title-tail {
+  font-size: 0.76rem;
+  letter-spacing: -0.055em;
+}
 .identity span {
   font-size: 0.76rem;
   line-height: 1.35;

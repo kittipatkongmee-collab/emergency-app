@@ -430,6 +430,11 @@ void main() {
       final heading = tester.widget<Text>(
         find.byKey(const Key('login-unit-heading')),
       );
+      expect(heading.data, AppCopy.unitNameMultiline);
+      expect(heading.data?.split('\n'), [
+        'หน่วยค้นหาและช่วยเหลืออากาศยาน',
+        'และเรือที่ประสบภัย กองบินตำรวจ(SRU)',
+      ]);
       expect(heading.maxLines, 2);
       expect(heading.softWrap, false);
       expect(heading.style?.fontSize, 27);
@@ -531,10 +536,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('สวัสดี test1'), findsOneWidget);
-      expect(
-        find.text('หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย (SRU)'),
-        findsOneWidget,
-      );
+      expect(find.text(AppCopy.unitNameMultiline), findsOneWidget);
       final header = tester.widget<Container>(
         find.byKey(const Key('home-header-background')),
       );

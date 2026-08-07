@@ -62,15 +62,20 @@ class _HomeContent extends ConsumerWidget {
                 const PoliceAviationLogo(size: 58),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: Text(
-                    AppCopy.unitName,
-                    maxLines: 3,
-                    overflow: TextOverflow.visible,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      height: 1.18,
-                      fontWeight: FontWeight.w800,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      AppCopy.unitNameMultiline,
+                      maxLines: 2,
+                      softWrap: false,
+                      overflow: TextOverflow.visible,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.18,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
