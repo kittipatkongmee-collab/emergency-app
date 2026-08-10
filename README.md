@@ -6,7 +6,7 @@ Monorepo สำหรับแอปประชาชน (Flutter), เว็�
 
 - Node.js 22 ขึ้นไป และ pnpm 11
 - Docker Desktop (Linux containers)
-- Flutter 3.41 ขึ้นไป และ Android Studio สำหรับรัน Android emulator
+- FVM 3.2 ขึ้นไป, Flutter 3.41.0 ที่ติดตั้งผ่าน FVM และ Android Studio สำหรับรัน Android emulator
 - PowerShell 7 แนะนำสำหรับ Windows
 
 ## ติดตั้งและสร้างฐานข้อมูลครั้งแรก
@@ -14,6 +14,7 @@ Monorepo สำหรับแอปประชาชน (Flutter), เว็�
 เปิด Docker Desktop และรอจนขึ้น `Engine running` จากนั้นเปิด PowerShell ที่โฟลเดอร์โปรเจกต์:
 
 ```powershell
+fvm install
 pnpm install
 pnpm env:configure
 pnpm db:start
@@ -137,7 +138,7 @@ Production ต้องปิด `DEV_AUTH_BYPASS`, ใช้ secret ใหม�
 - Port 3306 ถูกใช้: ตรวจ `Get-NetTCPConnection -LocalPort 3306` และหยุด MySQL ตัวอื่น หรือเปลี่ยน `DATABASE_PORT` พร้อม URL ใน `.env`
 - `pnpm` ไม่พบ: รัน `corepack enable` แล้ว `corepack prepare pnpm@11.9.0 --activate`
 - PowerShell บล็อก script: รัน `Set-ExecutionPolicy -Scope Process Bypass`
-- Android ไม่พบ: เปิด emulator ใน Android Studio แล้วตรวจ `flutter devices`
+- Android ไม่พบ: เปิด emulator ใน Android Studio แล้วตรวจ `fvm flutter devices`
 - Android เข้า localhost ไม่ได้: ใช้ `http://10.0.2.2:3000`
 - Prisma authentication failed: ตรวจให้รหัสใน `.env` ตรงกับ volume ปัจจุบัน หากเป็น development ที่ลบได้ให้ใช้ `pnpm db:reset`
 

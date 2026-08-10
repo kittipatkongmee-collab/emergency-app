@@ -1,0 +1,58 @@
+services:
+  mariadb-php:
+    image: mariadb:10.6.26
+    environment:
+      MARIADB_ROOT_PASSWORD: root-test-only
+      MARIADB_DATABASE: police_incident_test
+      MARIADB_USER: police_test
+      MARIADB_PASSWORD: police-test-only
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./apps/api-php/database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  api-php:
+    build:
+      context: ./apps/api-php
+      dockerfile: docker/Dockerfile
+    depends_on:
+      mariadb-php:
+        condition: service_healthy
+    environment:
+      APP_ENV: "${PHP_APP_ENV:-test}"
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8085
+      APP_TIMEZONE: UTC
+      CORS_ORIGINS: http://localhost:4200
+      DB_HOST: mariadb-php
+      DB_PORT: 3306
+      DB_DATABASE: police_incident_test
+      DB_USERNAME: police_test
+      DB_PASSWORD: police-test-only
+      JWT_ACCESS_SECRET: test-access-secret-with-at-least-32-characters
+      JWT_REFRESH_SECRET: test-refresh-secret-with-at-least-32-characters
+      DEV_AUTH_BYPASS: "${PHP_DEV_AUTH_BYPASS:-true}"
+      FIREBASE_ENABLED: "${PHP_FIREBASE_ENABLED:-false}"
+      FCM_ENABLED: "${PHP_FCM_ENABLED:-false}"
+      IMAGE_STORAGE_PATH: /var/www/html/public/image_emer
+      IMAGE_PUBLIC_URL: /image_emer
+    ports:
+      - "8085:80"
+    volumes:
+      - ./apps/api-php:/var/www/html
+      - php-image-storage:/var/www/html/public/image_emer
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$d=@file_get_contents('http://localhost/api/v1/ready'); exit(strpos($$d, '\"success\":true') === false);"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  php-image-storage:

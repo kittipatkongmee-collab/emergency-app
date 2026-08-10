@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "609936016898",
+    "firebase_url": "https://sar-police-emc-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "sar-police-emc",
+    "storage_bucket": "sar-police-emc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:609936016898:android:d8fefaf1a4cc2438ce491b",
+        "android_client_info": {
+          "package_name": "th.go.police.tpad.police_incident_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBma4U5lwsZPAloVsVBYUfqosXvBYEgwH8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

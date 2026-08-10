@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
-import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/app_core.dart';
 
 String incidentTypeLabel(String type) => switch (type) {
@@ -1725,13 +1725,15 @@ class TrackingScreen extends ConsumerStatefulWidget {
   ConsumerState<TrackingScreen> createState() => _TrackingScreenState();
 }
 
-class _TrackingScreenState extends ConsumerState<TrackingScreen> {
+class _TrackingScreenState extends ConsumerState<TrackingScreen>
+    with WidgetsBindingObserver {
   Incident? incident;
   String? error;
-  io.Socket? socket;
+  StreamSubscription<RealtimeEvent>? realtimeSubscription;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     load();
     connect();
   }
@@ -1748,28 +1750,35 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Future<void> connect() async {
-    final token = await ref
-        .read(secureStorageProvider)
-        .read(key: 'accessToken');
-    socket = io.io(
-      Environment.socketUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket'])
-          .setAuth({'token': token})
-          .disableAutoConnect()
-          .build(),
-    );
-    socket!.on('incident.status.changed', (_) => load());
-    socket!.on('notification.created', (_) {
-      ref.invalidate(notificationsProvider);
-      ref.invalidate(unreadCountProvider);
+    final realtime = ref.read(firebaseRealtimeProvider);
+    realtimeSubscription ??= realtime.events.listen((event) {
+      if (event.type == 'incident.status.changed' || event.type == 'realtime.resync') {
+        load();
+      }
+      if (event.type == 'notification.created' || event.type == 'realtime.resync') {
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(unreadCountProvider);
+      }
     });
-    socket!.connect();
+    try {
+      await realtime.connect();
+    } catch (_) {
+      // The API remains authoritative when realtime is temporarily unavailable.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      load();
+      connect();
+    }
   }
 
   @override
   void dispose() {
-    socket?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    realtimeSubscription?.cancel();
     super.dispose();
   }
 

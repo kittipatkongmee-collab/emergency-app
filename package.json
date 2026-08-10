@@ -40,12 +40,19 @@
     "db:check": "node scripts/run-with-env.mjs pnpm --filter @police/api check:db",
     "db:clear:development-citizens": "node scripts/run-with-env.mjs pnpm --filter @police/api clear:development-citizens",
     "db:verify:mysql": "node scripts/run-with-env.mjs pnpm --filter @police/api verify:mysql",
-    "mobile:get": "cd apps/mobile && flutter pub get",
-    "mobile:run": "cd apps/mobile && flutter run --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true",
+    "mobile:get": "cd apps/mobile && fvm flutter pub get",
+    "mobile:run": "cd apps/mobile && fvm flutter run --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true",
     "mobile:run:android": "node scripts/run-with-env.mjs node scripts/run-mobile-android.mjs",
-    "mobile:run:web": "cd apps/mobile && flutter run -d chrome --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true --dart-define=API_BASE_URL=http://localhost:3000/api/v1 --dart-define=SOCKET_URL=http://localhost:3000",
-    "mobile:analyze": "cd apps/mobile && flutter analyze",
-    "mobile:test": "cd apps/mobile && flutter test",
-    "test:launcher": "node --test scripts/run-mobile-android.test.mjs scripts/start-development.test.mjs"
+    "mobile:run:web": "cd apps/mobile && fvm flutter run -d chrome --dart-define=APP_ENV=development --dart-define=DEV_AUTH_BYPASS=true --dart-define=API_BASE_URL=http://localhost:3000/api/v1 --dart-define=FIREBASE_REALTIME_ENABLED=false",
+    "mobile:analyze": "cd apps/mobile && fvm flutter analyze",
+    "mobile:test": "cd apps/mobile && fvm flutter test",
+    "test:launcher": "node --test scripts/run-mobile-android.test.mjs scripts/start-development.test.mjs",
+    "php:test": "docker run --rm -v \"%CD%/apps/api-php:/app\" -w /app php:5.6-cli php tests/run.php",
+    "php:compose:up": "docker compose -f docker-compose.php.yml up -d --build",
+    "php:compose:down": "docker compose -f docker-compose.php.yml down -v",
+    "php:test:e2e": "powershell -ExecutionPolicy Bypass -File scripts/test-php-api-e2e.ps1",
+    "php:test:contract": "docker run --rm -v \"%CD%:/workspace\" -w /workspace/apps/api-php php:5.6-cli php tests/contract.php",
+    "firebase:test": "docker build -f packages/firebase-rules-tests/Dockerfile -t police-firebase-rules-test . && docker run --rm police-firebase-rules-test",
+    "build:directadmin": "powershell -ExecutionPolicy Bypass -File scripts/build-directadmin-package.ps1"
   }
 }

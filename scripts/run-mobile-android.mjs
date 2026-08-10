@@ -4,7 +4,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const isWindows = process.platform === "win32";
-const flutterCommand = "flutter";
+const flutterCommand = "fvm";
+const withFlutter = (args) => ["flutter", ...args];
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const mobileDirectory = join(workspaceRoot, "apps", "mobile");
 
@@ -17,10 +18,10 @@ function runFlutter(args, options = {}) {
   return isWindows
     ? spawnSync(
         process.env.ComSpec ?? "cmd.exe",
-        ["/d", "/c", [flutterCommand, ...args].join(" ")],
+        ["/d", "/c", [flutterCommand, ...withFlutter(args)].join(" ")],
         spawnOptions,
       )
-    : spawnSync(flutterCommand, args, spawnOptions);
+    : spawnSync(flutterCommand, withFlutter(args), spawnOptions);
 }
 
 function spawnFlutter(args) {
@@ -28,10 +29,10 @@ function spawnFlutter(args) {
   return isWindows
     ? spawn(
         process.env.ComSpec ?? "cmd.exe",
-        ["/d", "/c", [flutterCommand, ...args].join(" ")],
+        ["/d", "/c", [flutterCommand, ...withFlutter(args)].join(" ")],
         spawnOptions,
       )
-    : spawn(flutterCommand, args, spawnOptions);
+    : spawn(flutterCommand, withFlutter(args), spawnOptions);
 }
 
 export function parseAndroidDevices(output) {
