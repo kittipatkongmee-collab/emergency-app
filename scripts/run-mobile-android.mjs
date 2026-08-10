@@ -139,12 +139,24 @@ async function resolveAndroidDevice() {
   return waitForAndroidDevice();
 }
 
-function configureAdbReverse(deviceId) {
+export function resolveMobileApiPort(environment = process.env) {
+  const value = environment.MOBILE_API_PORT?.trim() || "3000";
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`พอร์ต API สำหรับแอปไม่ถูกต้อง: ${value}`);
+  }
+  const port = Number(value);
+  if (port < 1 || port > 65535) {
+    throw new Error(`พอร์ต API สำหรับแอปอยู่นอกช่วงที่รองรับ: ${value}`);
+  }
+  return port;
+}
+
+function configureAdbReverse(deviceId, apiPort) {
   const adbPath = findAdb();
   if (!adbPath) return false;
   const result = spawnSync(
     adbPath,
-    ["-s", deviceId, "reverse", "tcp:3000", "tcp:3000"],
+    ["-s", deviceId, "reverse", `tcp:${apiPort}`, `tcp:${apiPort}`],
     {
       stdio: "ignore",
     },
@@ -157,7 +169,8 @@ export async function main() {
   if (!/^[A-Za-z0-9_.:-]+$/.test(device.id)) {
     throw new Error("รหัสอุปกรณ์ Android มีรูปแบบที่ไม่รองรับ");
   }
-  const reversed = configureAdbReverse(device.id);
+  const apiPort = resolveMobileApiPort();
+  const reversed = configureAdbReverse(device.id, apiPort);
   const apiHost = reversed ? "127.0.0.1" : device.emulator ? "10.0.2.2" : null;
   if (!apiHost) {
     throw new Error(
@@ -190,8 +203,8 @@ export async function main() {
     `--dart-define=LINE_CHANNEL_ID=${lineChannelId}`,
     `--dart-define=LINE_EMAIL_SCOPE_ENABLED=${lineEmailScopeEnabled}`,
     `--dart-define=MAPS_ENABLED=${mapsEnabled}`,
-    `--dart-define=API_BASE_URL=http://${apiHost}:3000/api/v1`,
-    `--dart-define=SOCKET_URL=http://${apiHost}:3000`,
+    `--dart-define=API_BASE_URL=http://${apiHost}:${apiPort}/api/v1`,
+    `--dart-define=SOCKET_URL=http://${apiHost}:${apiPort}`,
   ]);
   child.once("error", (error) => {
     console.error("[แอป Android] เปิด Flutter ไม่สำเร็จ:", error.message);

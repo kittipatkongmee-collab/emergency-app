@@ -38,7 +38,9 @@ services:
       DB_PASSWORD: police-test-only
       JWT_ACCESS_SECRET: test-access-secret-with-at-least-32-characters
       JWT_REFRESH_SECRET: test-refresh-secret-with-at-least-32-characters
-      DEV_AUTH_BYPASS: "${PHP_DEV_AUTH_BYPASS:-true}"
+      DEV_AUTH_BYPASS: "${DEV_AUTH_BYPASS:-false}"
+      LINE_LOGIN_ENABLED: "${LINE_LOGIN_ENABLED:-false}"
+      LINE_CHANNEL_ID: "${LINE_CHANNEL_ID:-}"
       FIREBASE_ENABLED: "${PHP_FIREBASE_ENABLED:-false}"
       FCM_ENABLED: "${PHP_FCM_ENABLED:-false}"
       IMAGE_STORAGE_PATH: /var/www/html/public/image_emer

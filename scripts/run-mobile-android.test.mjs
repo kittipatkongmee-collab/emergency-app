@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   parseAndroidDevices,
   parseAndroidEmulatorIds,
+  resolveMobileApiPort,
 } from "./run-mobile-android.mjs";
 
 test("เลือกเฉพาะอุปกรณ์ Android ที่ Flutter รองรับ", () => {
@@ -33,4 +34,13 @@ Pixel_9   • Pixel 9   • Google       • android
 SATI_Test • SATI Test • Google       • android
 `;
   assert.deepEqual(parseAndroidEmulatorIds(output), ["Pixel_9", "SATI_Test"]);
+});
+
+test("ใช้พอร์ต PHP API ที่ launcher กำหนดให้แอป Android", () => {
+  assert.equal(resolveMobileApiPort({ MOBILE_API_PORT: "8085" }), 8085);
+  assert.equal(resolveMobileApiPort({}), 3000);
+  assert.throws(
+    () => resolveMobileApiPort({ MOBILE_API_PORT: "invalid" }),
+    /พอร์ต API สำหรับแอปไม่ถูกต้อง/,
+  );
 });
