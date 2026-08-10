@@ -126,7 +126,7 @@ function dockerEngineIsReady() {
   return result.status === 0;
 }
 
-async function ensureDockerReady() {
+export async function ensureDockerReady() {
   if (dockerEngineIsReady()) return;
   if (process.platform !== "win32") {
     throw new Error(
@@ -233,7 +233,7 @@ function findRunningWorkspaceWebProcesses() {
   }));
 }
 
-function stopRunningWorkspaceWeb() {
+export function stopRunningWorkspaceWeb() {
   const targets = selectWorkspaceWebTargets(findRunningWorkspaceWebProcesses());
   if (targets.length === 0) return;
   console.log(
