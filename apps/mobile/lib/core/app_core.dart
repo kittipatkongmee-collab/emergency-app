@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'api_gateway_cookie_interceptor.dart';
+
 class AppCopy {
   static const unitName =
       'หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)';
@@ -131,8 +133,10 @@ class ApiClient {
           baseUrl: Environment.apiBaseUrl,
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 20),
+          followRedirects: false,
         ),
       ) {
+    dio.interceptors.add(ApiGatewayCookieInterceptor(dio));
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
