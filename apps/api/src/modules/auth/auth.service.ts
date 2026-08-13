@@ -4,16 +4,25 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { OwnerType } from '@prisma/client';
+import { AuthenticationProvider, TokenOwnerType } from '@prisma/client';
 import argon2 from 'argon2';
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../core/prisma.service';
+import {
+  CitizenIdentityProfile,
+  DevelopmentAuthProvider,
+  FacebookAuthProvider,
+  LineAuthProvider,
+} from './auth-provider';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly developmentProvider: DevelopmentAuthProvider,
+    private readonly facebookProvider: FacebookAuthProvider,
+    private readonly lineProvider: LineAuthProvider,
   ) {}
 
   async adminLogin(username: string, password: string) {
@@ -25,52 +34,105 @@ export class AuthService {
       user.status !== 'ACTIVE' ||
       !(await argon2.verify(user.passwordHash, password))
     ) {
-      throw new UnauthorizedException('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'ADMIN_LOGIN_FAILED',
+          entityType: 'AdminUser',
+          newValue: { username },
+        },
+      });
+      throw new UnauthorizedException({
+        code:
+          user?.status !== 'ACTIVE'
+            ? 'ACCOUNT_DISABLED'
+            : 'INVALID_CREDENTIALS',
+        message:
+          user?.status !== 'ACTIVE'
+            ? 'บัญชีนี้ถูกระงับการใช้งาน'
+            : 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+      });
     }
-    await this.prisma.adminUser.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+    await this.prisma.$transaction([
+      this.prisma.adminUser.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      }),
+      this.prisma.auditLog.create({
+        data: {
+          adminUserId: user.id,
+          action: 'ADMIN_LOGIN',
+          entityType: 'AdminUser',
+          entityId: user.id,
+        },
+      }),
+    ]);
     return this.issue(user.id, 'admin', user.role, user.username);
   }
 
-  async citizenFacebook(accessToken: string, suppliedName?: string) {
-    let profile: {
-      id: string;
-      name: string;
-      email?: string;
-      picture?: { data?: { url?: string } };
-    };
-    if (
-      process.env.NODE_ENV === 'development' &&
-      process.env.DEV_AUTH_BYPASS === 'true' &&
-      accessToken.startsWith('dev-')
-    ) {
-      profile = { id: accessToken, name: suppliedName ?? 'ผู้ใช้งานทดสอบ' };
-    } else {
-      const version = process.env.FACEBOOK_GRAPH_API_VERSION ?? 'v23.0';
-      const response = await fetch(
-        `https://graph.facebook.com/${version}/me?fields=id,name,email,picture&access_token=${encodeURIComponent(accessToken)}`,
-      );
-      if (!response.ok)
-        throw new UnauthorizedException('Facebook token ไม่ถูกต้อง');
-      profile = (await response.json()) as typeof profile;
-    }
-    const user = await this.prisma.citizenUser.upsert({
-      where: { facebookId: profile.id },
-      create: {
-        facebookId: profile.id,
-        fullName: profile.name,
-        email: profile.email,
-        profileImageUrl: profile.picture?.data?.url,
+  async citizenDevelopment(profileId: string) {
+    return this.citizenFromProfile(
+      await this.developmentProvider.authenticate(profileId),
+    );
+  }
+
+  async citizenFacebook(accessToken: string) {
+    return this.citizenFromProfile(
+      await this.facebookProvider.authenticate(accessToken),
+    );
+  }
+
+  async citizenLine(idToken: string, nonce: string) {
+    return this.citizenFromProfile(
+      await this.lineProvider.authenticate(idToken, nonce),
+    );
+  }
+
+  private async citizenFromProfile(profile: CitizenIdentityProfile) {
+    const existing = await this.prisma.externalIdentity.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: profile.provider,
+          providerUserId: profile.providerUserId,
+        },
       },
-      update: {
-        fullName: profile.name,
-        email: profile.email,
-        profileImageUrl: profile.picture?.data?.url,
-        lastLoginAt: new Date(),
-      },
+      include: { citizenUser: true },
     });
+    if (
+      existing?.citizenUser.status !== undefined &&
+      existing.citizenUser.status !== 'ACTIVE'
+    ) {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_DISABLED',
+        message: 'บัญชีนี้ถูกระงับการใช้งาน',
+      });
+    }
+    const user = existing
+      ? await this.prisma.citizenUser.update({
+          where: { id: existing.citizenUserId },
+          data: {
+            fullName: profile.fullName,
+            email: profile.email,
+            profileImageUrl: profile.profileImageUrl,
+            lastLoginAt: new Date(),
+          },
+        })
+      : await this.prisma.citizenUser.create({
+          data: {
+            facebookId:
+              profile.provider === AuthenticationProvider.FACEBOOK
+                ? profile.providerUserId
+                : null,
+            fullName: profile.fullName,
+            email: profile.email,
+            profileImageUrl: profile.profileImageUrl,
+            externalIdentities: {
+              create: {
+                provider: profile.provider,
+                providerUserId: profile.providerUserId,
+              },
+            },
+          },
+        });
     return this.issue(user.id, 'citizen');
   }
 
@@ -81,13 +143,17 @@ export class AuthService {
       jti: string;
       role?: string;
       username?: string;
+      tokenType?: 'refresh';
     };
     try {
       payload = await this.jwt.verifyAsync(rawToken, {
         secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch {
-      throw new UnauthorizedException('Refresh token ไม่ถูกต้อง');
+      throw new UnauthorizedException({
+        code: 'TOKEN_EXPIRED',
+        message: 'Refresh token ไม่ถูกต้องหรือหมดอายุ',
+      });
     }
     const record = await this.prisma.refreshToken.findUnique({
       where: { id: payload.jti },
@@ -96,30 +162,47 @@ export class AuthService {
       !record ||
       record.revokedAt ||
       record.expiresAt < new Date() ||
-      record.tokenHash !== this.hash(rawToken)
+      record.tokenHash !== this.hash(rawToken) ||
+      payload.tokenType !== 'refresh' ||
+      record.ownerId !== payload.sub
     ) {
-      throw new UnauthorizedException('Refresh token ถูกยกเลิกหรือหมดอายุ');
+      throw new UnauthorizedException({
+        code: 'TOKEN_REVOKED',
+        message: 'Refresh token ถูกยกเลิกหรือหมดอายุ',
+      });
     }
-    await this.prisma.refreshToken.update({
-      where: { id: record.id },
-      data: { revokedAt: new Date() },
-    });
     return this.issue(
       payload.sub,
       payload.kind,
       payload.role,
       payload.username,
+      record.id,
     );
   }
 
   async logout(rawToken: string) {
     try {
-      const payload = await this.jwt.verifyAsync<{ jti: string }>(rawToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
-      });
-      await this.prisma.refreshToken.updateMany({
-        where: { id: payload.jti },
-        data: { revokedAt: new Date() },
+      const payload = await this.jwt.verifyAsync<{
+        jti: string;
+        sub: string;
+        kind: 'admin' | 'citizen';
+        tokenType: 'refresh';
+      }>(rawToken, { secret: process.env.JWT_REFRESH_SECRET });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.refreshToken.updateMany({
+          where: { id: payload.jti, ownerId: payload.sub },
+          data: { revokedAt: new Date() },
+        });
+        if (payload.kind === 'admin') {
+          await tx.auditLog.create({
+            data: {
+              adminUserId: payload.sub,
+              action: 'ADMIN_LOGOUT',
+              entityType: 'AdminUser',
+              entityId: payload.sub,
+            },
+          });
+        }
       });
     } catch {
       return { loggedOut: true };
@@ -145,6 +228,14 @@ export class AuthService {
       where: { ownerId: id, ownerType: 'ADMIN', revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    await this.prisma.auditLog.create({
+      data: {
+        adminUserId: id,
+        action: 'ADMIN_PASSWORD_CHANGED',
+        entityType: 'AdminUser',
+        entityId: id,
+      },
+    });
     return { changed: true };
   }
 
@@ -153,9 +244,10 @@ export class AuthService {
     kind: 'admin' | 'citizen',
     role?: string,
     username?: string,
+    replacedTokenId?: string,
   ) {
     const accessToken = await this.jwt.signAsync(
-      { sub, kind, role, username },
+      { sub, kind, role, username, tokenType: 'access' },
       {
         secret: process.env.JWT_ACCESS_SECRET,
         expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN ?? '15m') as never,
@@ -163,24 +255,30 @@ export class AuthService {
     );
     const jti = randomUUID();
     const refreshToken = await this.jwt.signAsync(
-      { sub, kind, role, username, jti },
+      { sub, kind, role, username, jti, tokenType: 'refresh' },
       {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '30d') as never,
       },
     );
-    const expiresAt = new Date(
-      Date.now() +
-        (process.env.JWT_REFRESH_EXPIRES_IN === '7d' ? 7 : 30) * 86_400_000,
-    );
-    await this.prisma.refreshToken.create({
-      data: {
-        id: jti,
-        ownerId: sub,
-        ownerType: kind === 'admin' ? OwnerType.ADMIN : OwnerType.CITIZEN,
-        tokenHash: this.hash(refreshToken),
-        expiresAt,
-      },
+    const expiresAt = new Date(Date.now() + this.refreshLifetimeMs());
+    await this.prisma.$transaction(async (tx) => {
+      await tx.refreshToken.create({
+        data: {
+          id: jti,
+          ownerId: sub,
+          ownerType:
+            kind === 'admin' ? TokenOwnerType.ADMIN : TokenOwnerType.CITIZEN,
+          tokenHash: this.hash(refreshToken),
+          expiresAt,
+        },
+      });
+      if (replacedTokenId) {
+        await tx.refreshToken.update({
+          where: { id: replacedTokenId },
+          data: { revokedAt: new Date(), replacedByTokenId: jti },
+        });
+      }
     });
     return {
       accessToken,
@@ -191,5 +289,15 @@ export class AuthService {
 
   private hash(value: string) {
     return createHash('sha256').update(value).digest('hex');
+  }
+
+  private refreshLifetimeMs() {
+    const value = process.env.JWT_REFRESH_EXPIRES_IN ?? '30d';
+    const match = /^(\d+)([dhm])$/.exec(value);
+    if (!match) return 30 * 86_400_000;
+    const amount = Number(match[1]);
+    const unit =
+      match[2] === 'd' ? 86_400_000 : match[2] === 'h' ? 3_600_000 : 60_000;
+    return amount * unit;
   }
 }

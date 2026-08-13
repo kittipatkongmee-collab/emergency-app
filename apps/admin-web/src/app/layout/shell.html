@@ -1,1 +1,110 @@
-<div class="app-shell"><aside [class.open]="open()"><button class="mobile-close" (click)="open.set(false)" aria-label="ปิดเมนู">×</button><a class="identity" routerLink="/dashboard"><div class="mini-logo" aria-label="ตำแหน่งโลโก้จริง">✦</div><strong>กองบินตำรวจ</strong><span>ระบบบริหารและรับแจ้งเหตุ</span></a><nav aria-label="เมนูหลัก">@for(item of menu;track item[2]){<a [routerLink]="item[2]" routerLinkActive="active" (click)="open.set(false)"><b>{{item[0]}}</b>{{item[1]}}</a>}</nav><a class="user" routerLink="/profile"><span>สช</span><div><b>ผู้ดูแลระบบ</b><small>เจ้าหน้าที่</small></div></a><button class="logout" (click)="auth.logout()">⇥ ออกจากระบบ</button><p class="office">สำนักงานตำรวจแห่งชาติ<br><small>ROYAL THAI POLICE</small></p></aside>@if(open()){<button class="scrim" aria-label="ปิดเมนู" (click)="open.set(false)"></button>}<div class="main"><header><button class="menu-button" (click)="open.set(true)" aria-label="เปิดเมนู">☰</button><span class="spacer"></span><a routerLink="/notifications" aria-label="การแจ้งเตือน">♢<i>2</i></a><span class="updated">◷ อัปเดตล่าสุด {{now}}</span></header><main><router-outlet/></main></div></div>
+<div class="app-shell">
+  <aside [class.open]="open()">
+    <button class="mobile-close" (click)="open.set(false)" aria-label="ปิดเมนู">×</button>
+    <a class="identity" routerLink="/dashboard">
+      <div class="mini-logo">
+        <small>SRU</small><span aria-hidden="true">✈</span><b>TPAD</b>
+        <img
+          src="images/police-aviation-logo-transparent.png"
+          alt="โลโก้หน่วยค้นหาและช่วยเหลืออากาศยานและเรือที่ประสบภัย กองบินตำรวจ(SRU)"
+          (error)="hideMissingLogo($event)"
+        />
+      </div>
+      <strong class="identity-title">
+        <span class="identity-title-line">หน่วยค้นหาและช่วยเหลืออากาศยาน</span>
+        <span class="identity-title-line identity-title-tail"
+          >และเรือที่ประสบภัย กองบินตำรวจ(SRU)</span
+        >
+      </strong>
+      <span>ระบบบริหารและรับแจ้งเหตุฉุกเฉิน</span>
+    </a>
+    <nav class="sidebar-nav" aria-label="เมนูหลัก">
+      @for (item of menu(); track item.route) {
+        <a [routerLink]="item.route" routerLinkActive="active" (click)="open.set(false)">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path [attr.d]="item.iconPath" />
+            </svg>
+          </span>
+          <span class="nav-label">{{ item.label }}</span>
+          @if (item.route === '/notifications' && unread() > 0) {
+            <span class="nav-badge">{{ unread() > 99 ? '99+' : unread() }}</span>
+          }
+        </a>
+      }
+    </nav>
+    <p class="office">
+      <span class="police-seal">
+        <img
+          src="images/royal-thai-police-logo.png"
+          alt="ตราสำนักงานตำรวจแห่งชาติ"
+          (error)="hideMissingLogo($event)"
+        />
+      </span>
+      สำนักงานตำรวจแห่งชาติ<br /><small>ROYAL THAI POLICE</small>
+    </p>
+    <div class="user-menu">
+      @if (userMenuOpen()) {
+        <div class="user-popover" role="menu" aria-label="เมนูบัญชีผู้ใช้">
+          <a routerLink="/profile" role="menuitem" (click)="closeMenus()">♙ ข้อมูลโปรไฟล์</a>
+          <a routerLink="/change-password" role="menuitem" (click)="closeMenus()"
+            >⌘ เปลี่ยนรหัสผ่าน</a
+          >
+          <button type="button" role="menuitem" (click)="logout()">⇥ ออกจากระบบ</button>
+        </div>
+      }
+      <button
+        type="button"
+        class="user"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="userMenuOpen()"
+        (click)="toggleUserMenu($event)"
+      >
+        <div>
+          <b>{{ auth.user()?.fullName ?? 'เจ้าหน้าที่' }}</b>
+          <small>{{ auth.user()?.role ?? '' }}</small>
+        </div>
+      </button>
+    </div>
+  </aside>
+  @if (open()) {
+    <button class="scrim" aria-label="ปิดเมนู" (click)="open.set(false)"></button>
+  }
+  <div class="main">
+    <header>
+      <button class="menu-button" (click)="open.set(true)" aria-label="เปิดเมนู">☰</button>
+      <a class="mobile-header-brand" routerLink="/dashboard" aria-label="ไปหน้าแดชบอร์ด">
+        <img src="images/police-aviation-logo-transparent.png" alt="" />
+        <span><b>ระบบแจ้งเหตุ SRU</b><small>ศูนย์ปฏิบัติการ</small></span>
+      </a>
+      <span class="spacer"></span>
+      <a class="header-notification" routerLink="/notifications" aria-label="การแจ้งเตือน">
+        <span class="header-bell-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M12 22a2.5 2.5 0 0 0 2.35-1.65h-4.7A2.5 2.5 0 0 0 12 22Zm7.1-6.8-1.6-2.35V8a5.5 5.5 0 0 0-4.4-5.39V2a1.1 1.1 0 0 0-2.2 0v.61A5.5 5.5 0 0 0 6.5 8v4.85L4.9 15.2a1.15 1.15 0 0 0 .95 1.8h12.3a1.15 1.15 0 0 0 .95-1.8Z"
+            />
+          </svg>
+        </span>
+        @if (unread() > 0) {
+          <i>{{ unread() > 99 ? '99+' : unread() }}</i>
+        }
+      </a>
+      <span class="updated">◷ อัปเดตล่าสุด {{ now }}</span>
+    </header>
+    <main><router-outlet /></main>
+  </div>
+  <nav class="mobile-tabs" aria-label="เมนูหลักบนมือถือ">
+    @for (item of bottomMenu(); track item.route) {
+      <a [routerLink]="item.route" routerLinkActive="active">
+        <span class="mobile-tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><path [attr.d]="item.iconPath" /></svg>
+          @if (item.route === '/notifications' && unread() > 0) {
+            <i>{{ unread() > 99 ? '99+' : unread() }}</i>
+          }
+        </span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+</div>

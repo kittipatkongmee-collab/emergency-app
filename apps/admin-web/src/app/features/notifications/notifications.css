@@ -1,0 +1,187 @@
+.notification-list {
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.notification-list article {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notification-list article.unread {
+  background: #fff7f8;
+}
+
+.notification-list article.clickable {
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.notification-list article.clickable:hover,
+.notification-list article.clickable:focus-visible {
+  outline: none;
+  background: #fff1f3;
+  box-shadow: inset 4px 0 0 var(--primary);
+}
+
+.notice-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: white;
+  background: var(--primary);
+  font-size: 1rem;
+}
+
+.notice-content {
+  min-width: 0;
+}
+
+.notification-list p {
+  margin: 4px 0;
+}
+
+.notification-list time {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.delete-notice {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #e8b4ba;
+  border-radius: 9px;
+  color: var(--danger);
+  background: white;
+  font-size: 1rem;
+}
+
+.delete-notice:hover,
+.delete-notice:focus-visible {
+  background: var(--primary-light);
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(37, 28, 29, 0.52);
+}
+
+.delete-dialog {
+  width: min(100%, 480px);
+  padding: 30px;
+  text-align: center;
+}
+
+.delete-dialog h2 {
+  margin: 14px 0 8px;
+  color: var(--primary-dark);
+}
+
+.delete-dialog > p {
+  margin: 5px 0;
+}
+
+.delete-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: auto;
+  border-radius: 50%;
+  color: var(--danger);
+  background: var(--primary-light);
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.delete-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.delete-confirm {
+  background: var(--danger);
+}
+
+.dialog-error {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .delete-dialog {
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .notice-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .notification-list {
+    margin-top: 16px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .notification-list article {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .notification-list article.unread {
+    border-left: 4px solid var(--primary);
+  }
+
+  .notification-list p {
+    line-height: 1.5;
+  }
+
+  .notice-actions .btn-outline {
+    flex: 1 1 auto;
+  }
+
+  .delete-dialog footer {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 8px;
+  }
+}

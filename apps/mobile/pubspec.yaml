@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.8+9
 
 environment:
   sdk: ^3.11.0
@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -39,17 +41,22 @@ dependencies:
   dio: ^5.11.0
   flutter_secure_storage: ^10.3.1
   image_picker: ^1.2.3
+  image: ^4.9.1
   geolocator: ^14.0.3
   permission_handler: ^12.0.3
-  google_maps_flutter: ^2.18.0
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
   firebase_core: ^4.12.1
+  firebase_auth: ^6.5.7
+  firebase_database: ^12.4.7
   firebase_messaging: ^16.4.3
-  socket_io_client: ^3.1.6
   cached_network_image: ^3.4.1
-  flutter_facebook_auth: ^7.2.0
-  intl: ^0.20.3
+  flutter_line_sdk: ^2.7.2
+  intl: ^0.20.2
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
+  video_player: ^2.11.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -64,7 +71,6 @@ dev_dependencies:
   build_runner: ^2.15.1
   freezed: ^3.2.5
   json_serializable: ^6.14.0
-  mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -76,6 +82,34 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/police-aviation-logo.png
+    - assets/images/line-logo.png
+    - assets/images/home-header-background.png
+    - assets/images/bell-429-global-ranger.jpg
+    - assets/images/bell-412-ep.jpg
+    - assets/images/as365n3-dauphin.gif
+    - assets/images/aircraft/bell-429/
+    - assets/videos/aircraft/bell-429/
+    - assets/images/aircraft/bell-412/
+    - assets/images/aircraft/as365n3-dauphin/
+    - assets/videos/aircraft/bell-412/
+    - assets/videos/aircraft/as365n3-dauphin/
+
+  fonts:
+    - family: Sarabun
+      fonts:
+        - asset: assets/fonts/sarabun/Sarabun-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/sarabun/Sarabun-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/sarabun/Sarabun-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/sarabun/Sarabun-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/sarabun/Sarabun-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

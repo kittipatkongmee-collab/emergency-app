@@ -1,1 +1,232 @@
-@if(loading()){<div class="card state"><div class="spinner"></div><p>กำลังโหลดรายละเอียด…</p></div>}@else if(error()&&!item()){<div class="card state"><h1>เปิดข้อมูลไม่ได้</h1><p class="muted">{{error()}}</p></div>}@else if(item();as i){<section class="heading"><div><p class="eyebrow">{{i.caseCode}}</p><h1 class="page-title">รายละเอียดเหตุการณ์</h1><p class="muted">รับแจ้งเมื่อ {{i.reportedAt|date:'d MMMM y เวลา HH:mm':'':'th'}}</p></div><span class="status">{{i.status}}</span></section>@if(error()){<p class="alert">{{error()}}</p>}<div class="detail-grid"><div class="content"><section class="card overview"><div class="incident-icon">!</div><div><p class="eyebrow">{{i.type}}</p><h2>{{i.description}}</h2><dl><div><dt>ผู้แจ้ง</dt><dd>{{i.reporterName}}</dd></div><div><dt>โทรศัพท์</dt><dd><a [href]="'tel:'+i.reporterPhone">{{i.reporterPhone}}</a></dd></div><div><dt>ความสำคัญ</dt><dd>{{i.priority}}</dd></div><div><dt>ผู้รับผิดชอบ</dt><dd>{{i.assignedAdminUser?.fullName||'ยังไม่มอบหมาย'}}</dd></div></dl></div></section><section class="card location"><header><h2>ตำแหน่งเกิดเหตุ</h2><span>ละติจูด {{i.latitude}} · ลองจิจูด {{i.longitude}}</span></header><iframe title="แผนที่ตำแหน่งเหตุการณ์" [src]="mapUrl(i)"></iframe><p>⌖ {{i.address}}</p></section><section class="card gallery"><h2>รูปภาพเหตุการณ์</h2>@if(i.images.length){<div>@for(image of i.images;track image.id){<img [src]="image.imageUrl" [alt]="image.originalName">}</div>}@else{<div class="state"><p class="muted">ยังไม่มีรูปภาพในเหตุการณ์นี้</p></div>}</section></div><aside><form class="card action" [formGroup]="form" (ngSubmit)="save()"><h2>อัปเดตการดำเนินการ</h2><div class="field"><label>สถานะใหม่</label><select formControlName="status"><option value="RECEIVED">รับแจ้งเหตุแล้ว</option><option value="FORWARDED">ส่งต่อเจ้าหน้าที่</option><option value="INSPECTING">กำลังเข้าตรวจสอบ</option><option value="IN_PROGRESS">กำลังดำเนินการ</option><option value="COMPLETED">เสร็จสิ้น</option><option value="CANCELLED">ยกเลิก</option></select></div><div class="field"><label>หมายเหตุ</label><textarea formControlName="note" rows="4" placeholder="รายละเอียดที่ประชาชนควรทราบ"></textarea></div><button class="btn-primary" [disabled]="saving()">{{saving()?'กำลังบันทึก…':'บันทึกสถานะ'}}</button></form><section class="card timeline"><h2>ประวัติสถานะ</h2>@for(h of i.statusHistory;track h.id){<article><i>✓</i><div><b>{{h.toStatus}}</b><time>{{h.changedAt|date:'d MMM y HH:mm':'':'th'}}</time><p>{{h.note||'ไม่มีหมายเหตุ'}}</p><small>{{h.changedByAdminUser?.fullName||'ระบบ'}}</small></div></article>}</section></aside></div>}
+@if (loading()) {
+  <div class="card state">
+    <div class="spinner"></div>
+    <p>กำลังโหลดรายละเอียด…</p>
+  </div>
+} @else if (error() && !item()) {
+  <div class="card state">
+    <h1>เปิดข้อมูลไม่ได้</h1>
+    <p class="muted">{{ error() }}</p>
+    <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+  </div>
+} @else if (item(); as i) {
+  <section class="heading">
+    <div>
+      <p class="eyebrow">{{ i.caseCode }}</p>
+      <h1 class="page-title">รายละเอียดเหตุการณ์</h1>
+      <p class="muted">รับแจ้งเมื่อ {{ i.reportedAt | thaiBuddhistDate: 'long' }}</p>
+    </div>
+    <div class="incident-heading-actions">
+      @if (canDelete) {
+        <button
+          class="btn-outline delete-incident"
+          type="button"
+          [disabled]="saving()"
+          (click)="openConfirmation('delete')"
+        >
+          ลบรายการแจ้งเหตุ
+        </button>
+      }
+      <span class="status" [attr.data-status]="i.status">{{ statusLabel(i.status) }}</span>
+    </div>
+  </section>
+  @if (error()) {
+    <p class="incident-alert">{{ error() }}</p>
+  }
+  <div class="detail-grid">
+    <div class="content">
+      <section class="card overview">
+        <div class="incident-icon">!</div>
+        <div>
+          <p class="eyebrow">{{ typeLabel(i.type) }}</p>
+          <h2>{{ i.description }}</h2>
+          <dl>
+            <div>
+              <dt>ผู้แจ้ง</dt>
+              <dd>{{ i.reporterName }}</dd>
+            </div>
+            <div>
+              <dt>โทรศัพท์</dt>
+              <dd>
+                <a [href]="'tel:' + i.reporterPhone">{{ i.reporterPhone }}</a>
+              </dd>
+            </div>
+            <div>
+              <dt>ผู้รับผิดชอบ</dt>
+              <dd>{{ i.assignedAdminUser?.fullName || 'ยังไม่มอบหมาย' }}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+      <section class="card location">
+        <header>
+          <h2>ตำแหน่งเกิดเหตุ</h2>
+          <span>ละติจูด {{ i.latitude }} · ลองจิจูด {{ i.longitude }}</span>
+        </header>
+        <iframe
+          title="แผนที่ตำแหน่งเหตุการณ์"
+          [src]="mapUrl(i)"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        ></iframe>
+        <p>
+          ⌖ {{ i.address }}
+          <a class="map-link" [href]="mapExternalUrl(i)" target="_blank" rel="noopener noreferrer"
+            >เปิดแผนที่ขนาดเต็ม ↗</a
+          >
+        </p>
+      </section>
+      <section class="card gallery">
+        <h2>รูปภาพเหตุการณ์</h2>
+        @if (i.images.length) {
+          <div>
+            @for (image of i.images; track image.id) {
+              <button
+                type="button"
+                class="gallery-image"
+                [attr.aria-label]="'ขยายรูป ' + image.originalName"
+                (click)="openImagePreview(image.imageUrl, image.originalName)"
+              >
+                <img [src]="mediaUrl(image.imageUrl)" [alt]="image.originalName" />
+                <span aria-hidden="true">ขยายรูป</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="state"><p class="muted">ยังไม่มีรูปภาพในเหตุการณ์นี้</p></div>
+        }
+      </section>
+    </div>
+    <aside>
+      <section class="card action workflow">
+        <div class="workflow-icon" [class.completed]="i.status === 'COMPLETED'">
+          {{ i.status === 'COMPLETED' ? '✓' : '!' }}
+        </div>
+        <div>
+          <p class="eyebrow">การดำเนินการ</p>
+          <h2>{{ statusLabel(i.status) }}</h2>
+        </div>
+        @if (i.assignedAdminUser) {
+          <p class="assignee">
+            <span>ผู้รับผิดชอบ</span>
+            <strong>{{ i.assignedAdminUser.fullName }}</strong>
+          </p>
+        }
+        @if (canAccept) {
+          <p class="muted">กดยืนยันเพื่อรับแจ้งเหตุการณ์นี้</p>
+          <button class="btn-primary" type="button" (click)="openConfirmation('accept')">
+            รับแจ้งเหตุ
+          </button>
+        } @else if (canComplete) {
+          <button class="btn-primary" type="button" (click)="openConfirmation('complete')">
+            ภารกิจสำเร็จ
+          </button>
+        } @else if (i.status === 'IN_PROGRESS') {
+          <p class="workflow-message">เหตุการณ์นี้กำลังดำเนินการโดยเจ้าหน้าที่ผู้รับผิดชอบ</p>
+        } @else if (i.status !== 'COMPLETED') {
+          <p class="workflow-message">เหตุการณ์นี้ไม่สามารถดำเนินการต่อได้</p>
+        }
+      </section>
+      <section class="card timeline">
+        <h2>ประวัติสถานะ</h2>
+        @for (h of i.statusHistory; track h.id) {
+          <article>
+            <i>✓</i>
+            <div>
+              <b>{{ statusLabel(h.toStatus) }}</b
+              ><time>{{ h.changedAt | thaiBuddhistDate }}</time>
+              <p>{{ h.note || 'ไม่มีหมายเหตุ' }}</p>
+              <small>{{ h.changedByAdminUser?.fullName || 'ระบบ' }}</small>
+            </div>
+          </article>
+        }
+      </section>
+    </aside>
+  </div>
+  @if (confirmation(); as action) {
+    <div class="modal-backdrop" (click)="closeConfirmation()">
+      <section
+        class="confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="'confirm-title'"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="closeConfirmation()"
+      >
+        <div class="confirm-icon" [class.danger]="action === 'delete'">
+          {{ action === 'accept' ? '!' : action === 'delete' ? '×' : '✓' }}
+        </div>
+        <h2 id="confirm-title">
+          {{
+            action === 'accept'
+              ? 'ยืนยันรับแจ้งเหตุ'
+              : action === 'delete'
+                ? 'ยืนยันการลบรายการแจ้งเหตุ'
+                : 'ยืนยันภารกิจสำเร็จ'
+          }}
+        </h2>
+        <p>
+          {{
+            action === 'accept'
+              ? 'เมื่อยืนยัน สถานะจะเปลี่ยนเป็นกำลังดำเนินการ'
+              : action === 'delete'
+                ? 'รายการ ' + i.caseCode + ' รูปภาพ การแจ้งเตือน และข้อมูลที่เกี่ยวข้องจะถูกลบถาวรและไม่สามารถเรียกคืนได้'
+                : 'เมื่อยืนยัน เปลี่ยนเป็นภารกิจสำเร็จและแจ้งผลไปยังผู้แจ้งเหตุ'
+          }}
+        </p>
+        <div class="modal-actions">
+          <button
+            class="btn-outline"
+            type="button"
+            [disabled]="saving()"
+            (click)="closeConfirmation()"
+          >
+            ยกเลิก
+          </button>
+          <button
+            class="btn-primary"
+            [class.danger-button]="action === 'delete'"
+            type="button"
+            [disabled]="saving()"
+            (click)="confirmWorkflowAction()"
+            autofocus
+          >
+            {{
+              saving()
+                ? action === 'delete'
+                  ? 'กำลังลบ…'
+                  : 'กำลังบันทึก…'
+                : action === 'accept'
+                  ? 'ยืนยันรับแจ้งเหตุ'
+                  : action === 'delete'
+                    ? 'ยืนยันการลบ'
+                    : 'ยืนยันภารกิจสำเร็จ'
+            }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+  @if (imagePreview(); as preview) {
+    <div class="image-preview-backdrop" (click)="closeImagePreview()">
+      <section
+        class="image-preview"
+        role="dialog"
+        aria-modal="true"
+        aria-label="รูปภาพเหตุการณ์ขนาดใหญ่"
+        (click)="$event.stopPropagation()"
+      >
+        <button
+          type="button"
+          class="image-preview-close"
+          aria-label="ปิดรูปภาพขนาดใหญ่"
+          (click)="closeImagePreview()"
+        >
+          ×
+        </button>
+        <img [src]="preview.url" [alt]="preview.alt" />
+        <p>{{ preview.alt }}</p>
+      </section>
+    </div>
+  }
+}

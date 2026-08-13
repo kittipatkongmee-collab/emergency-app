@@ -1,17 +1,37 @@
-# police_incident_mobile
+# Police Incident Mobile
 
-A new Flutter project.
+โปรเจกต์ Flutter ใช้ FVM เพื่อแยก SDK ออกจาก Flutter หลักของเครื่อง โดยเวอร์ชันที่กำหนดไว้ใน `.fvmrc` ที่ root ของ repository
 
-## Getting Started
+## ติดตั้ง SDK สำหรับโปรเจกต์
 
-This project is a starting point for a Flutter application.
+รันจาก root ของ repository:
 
-A few resources to get you started if this is your first Flutter project:
+```powershell
+fvm install
+fvm flutter --version
+pnpm mobile:get
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## รันบน Android emulator กับ PHP API
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+เปิด emulator ก่อน แล้วรันจาก root ของ repository:
+
+```powershell
+fvm flutter emulators --launch Pixel_4
+cd apps/mobile
+fvm flutter run `
+  --dart-define=APP_ENV=development `
+  --dart-define=API_BASE_URL=http://10.0.2.2:8085/api/v1 `
+  --dart-define=DEV_AUTH_BYPASS=true `
+  --dart-define=FIREBASE_REALTIME_ENABLED=true `
+  --dart-define=FCM_ENABLED=true
+```
+
+Android emulator ใช้ `10.0.2.2` เพื่อเชื่อมต่อบริการที่รันบน `localhost` ของเครื่อง Windows
+
+## ตรวจสอบคุณภาพ
+
+```powershell
+pnpm mobile:analyze
+pnpm mobile:test
+```

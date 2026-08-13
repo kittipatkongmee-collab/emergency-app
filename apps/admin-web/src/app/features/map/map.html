@@ -1,0 +1,114 @@
+<h1 class="page-title">แผนที่เหตุการณ์</h1>
+
+<section class="aggregate-section">
+  <header class="section-heading">
+    <div>
+      <h2>แผนที่รวม</h2>
+    </div>
+    <span class="active-count">{{ plottedIncidents().length }} จุด</span>
+  </header>
+
+  @if (mapLoading()) {
+    <div class="card state aggregate-map-state"><div class="spinner"></div></div>
+  } @else if (mapError()) {
+    <div class="card state aggregate-map-state">
+      <p>{{ mapError() }}</p>
+      <button class="btn-outline" (click)="loadMapPoints()">ลองอีกครั้ง</button>
+    </div>
+  } @else {
+    <div
+      #mapContainer
+      class="aggregate-map-canvas"
+      role="application"
+      aria-label="แผนที่รวมหมุดของเหตุการณ์ทั้งหมด สามารถลาก ซูม และเลื่อนแผนที่ได้"
+    >
+      @if (!plottedIncidents().length) {
+        <p class="no-active-incidents">ไม่มีเหตุการณ์ที่มีพิกัด</p>
+      }
+    </div>
+  }
+</section>
+
+<section class="individual-section">
+  <header class="section-heading">
+    <div>
+      <h2>แผนที่แต่ละรายการ</h2>
+    </div>
+  </header>
+
+  <div class="map-layout">
+    <div class="map-panel">
+      @if (loading()) {
+        <div class="card state item-map-state"><div class="spinner"></div></div>
+      } @else if (error()) {
+        <div class="card state item-map-state">
+          <p>{{ error() }}</p>
+          <button class="btn-outline" (click)="load()">ลองอีกครั้ง</button>
+        </div>
+      } @else if (selectedIncident(); as selected) {
+        <div class="map-caption card">
+          <div>
+            <b>{{ selected.caseCode }}</b>
+            <span>{{ selected.address }}</span>
+          </div>
+          <span class="status selected-status" [attr.data-status]="selected.status">
+            {{ statusLabel(selected.status) }}
+          </span>
+        </div>
+
+        @if (selected.status !== 'COMPLETED' && hasValidCoordinates(selected)) {
+          <div class="card selected-map-card">
+            <app-incident-location-map [incident]="selected" />
+          </div>
+        } @else if (selected.status === 'COMPLETED') {
+          <div class="card state item-map-state">
+            เหตุการณ์นี้ดำเนินการเสร็จสิ้นแล้ว จึงไม่แสดงหมุดบนแผนที่
+          </div>
+        } @else {
+          <div class="card state item-map-state">รายการนี้ไม่มีพิกัดที่ใช้งานได้</div>
+        }
+      } @else {
+        <div class="card state item-map-state">ยังไม่มีรายการจุดเกิดเหตุ</div>
+      }
+    </div>
+
+    <div class="locations-column">
+      <div class="card locations">
+        <h2>รายการจุดเกิดเหตุ</h2>
+        <div class="location-list">
+          @if (loading()) {
+            <div class="state"><div class="spinner"></div></div>
+          } @else if (!incidents().length) {
+            <div class="state"><p>ไม่พบรายการจุดเกิดเหตุ</p></div>
+          }
+          @for (incident of incidents(); track incident.id) {
+            <article
+              [class.selected]="selectedId() === incident.id"
+              [class.completed]="incident.status === 'COMPLETED'"
+            >
+              <button type="button" (click)="select(incident)">
+                <span class="location-heading">
+                  <b>{{ incident.caseCode }}</b>
+                  <small class="status" [attr.data-status]="incident.status">
+                    {{ statusLabel(incident.status) }}
+                  </small>
+                </span>
+                <span>{{ incident.address }}</span>
+                <small>{{ incident.latitude }}, {{ incident.longitude }}</small>
+              </button>
+              <a [routerLink]="['/incidents', incident.id]">เปิดรายละเอียด ›</a>
+            </article>
+          }
+        </div>
+      </div>
+      @if (!loading() && !error() && pagination().totalPages > 0) {
+        <app-pagination
+          class="locations-pagination"
+          [pagination]="pagination()"
+          [windowSize]="3"
+          (pageChange)="selectPage($event)"
+        />
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,176 @@
+.heading {
+  margin-bottom: 20px;
+}
+
+.heading p:last-child {
+  margin: 5px 0;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns:
+    minmax(140px, 0.7fr) minmax(140px, 0.7fr) minmax(220px, 1.4fr)
+    minmax(100px, 0.4fr) minmax(160px, 0.85fr) minmax(160px, 0.85fr);
+  gap: 14px;
+  align-items: end;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.filters button {
+  height: 44px;
+}
+
+.list {
+  overflow: hidden;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+th,
+td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  background: #fdf9f9;
+  white-space: nowrap;
+  color: #5d4c4e;
+}
+
+td small {
+  display: block;
+  max-width: 320px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.open {
+  color: var(--primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .keyword-field,
+  .type-field,
+  .status-field {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 800px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filters .field,
+  .filters .search-button {
+    grid-column: 1;
+  }
+
+}
+
+@media (max-width: 640px) {
+  .heading {
+    margin-bottom: 16px;
+  }
+
+  .filters {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .list {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table,
+  tbody {
+    display: block;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  tbody tr {
+    display: grid;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  td {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    min-width: 0;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eadfe1;
+  }
+
+  td::before {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  td:nth-child(1)::before { content: 'รหัสเหตุ'; }
+  td:nth-child(2)::before { content: 'วันเวลา'; }
+  td:nth-child(3)::before { content: 'ผู้แจ้ง'; }
+  td:nth-child(4)::before { content: 'รายละเอียด'; }
+  td:nth-child(5)::before { content: 'สถานะ'; }
+  td:nth-child(6)::before { content: 'พื้นที่'; }
+  td:nth-child(7)::before { content: 'ดำเนินการ'; }
+
+  td:last-child {
+    border-bottom: 0;
+  }
+
+  td small {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .open {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+}

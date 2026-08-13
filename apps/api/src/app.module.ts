@@ -15,7 +15,11 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['../../.env', '.env'],
+      validate: validateEnvironment,
+    }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     CoreModule,
     RealtimeModule,

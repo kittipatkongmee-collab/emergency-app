@@ -1,0 +1,183 @@
+.audit-search {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 760px);
+  margin-top: 20px;
+}
+
+.audit-search label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.audit-search-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.audit-search input {
+  width: 100%;
+  height: 44px;
+  padding: 10px 13px;
+  border: 1px solid #d9d1d2;
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: white;
+  outline: none;
+}
+
+.audit-search input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(143, 0, 16, 0.1);
+}
+
+.audit-search button {
+  min-width: 104px;
+  height: 44px;
+}
+
+.operation-card {
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.operation-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.operation-card th,
+.operation-card td {
+  padding: 15px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.operation-card th {
+  background: #fcf8f8;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 16px 18px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-button {
+  min-width: 38px;
+  min-height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  padding: 6px 10px;
+  color: var(--primary-dark);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.page-button.active {
+  border-color: var(--primary);
+  color: white;
+  background: var(--primary);
+}
+
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ellipsis {
+  padding: 0 3px;
+  font-weight: 700;
+}
+
+@media (max-width: 650px) {
+  .audit-search-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-search button {
+    width: 100%;
+  }
+
+  .operation-card {
+    overflow: auto;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+
+  .operation-card {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .operation-card table,
+  .operation-card tbody {
+    display: block;
+  }
+
+  .operation-card thead {
+    display: none;
+  }
+
+  .operation-card tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .operation-card tr {
+    display: grid;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .operation-card td {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px dashed #eadfe1;
+    overflow-wrap: anywhere;
+  }
+
+  .operation-card td::before {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .operation-card td:nth-child(1)::before { content: 'วันเวลา'; }
+  .operation-card td:nth-child(2)::before { content: 'ผู้ดำเนินการ'; }
+  .operation-card td:nth-child(3)::before { content: 'การกระทำ'; }
+  .operation-card td:nth-child(4)::before { content: 'ข้อมูล'; }
+
+  .operation-card td:last-child {
+    border-bottom: 0;
+  }
+
+  .pagination {
+    padding-inline: 0;
+  }
+
+  .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
