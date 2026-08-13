@@ -25,8 +25,10 @@ Future<void> main() async {
   if (Environment.lineLoginConfigured) {
     await LineSDK.instance.setup(Environment.lineChannelId);
   }
-  if (Environment.fcmEnabled) {
+  if (Environment.fcmEnabled || Environment.firebaseRealtimeEnabled) {
     await Firebase.initializeApp();
+  }
+  if (Environment.fcmEnabled) {
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
   }
   runApp(const ProviderScope(child: PoliceIncidentApp()));

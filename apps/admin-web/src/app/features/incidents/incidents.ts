@@ -5,6 +5,7 @@ import { NgSelectComponent } from '@ng-select/ng-select';
 import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { IncidentPage } from '../../core/models';
+import { RealtimeService } from '../../core/realtime.service';
 import { BuddhistDatepickerDirective } from '../../shared/buddhist-datepicker.directive';
 import { PaginationComponent } from '../../shared/pagination';
 import { ThaiBuddhistDatePipe } from '../../shared/thai-buddhist-date.pipe';
@@ -47,8 +48,12 @@ export class IncidentsComponent implements OnInit, OnDestroy {
     { value: 'COMPLETED', label: 'ภารกิจสำเร็จ' },
   ];
   private filterSubscription?: Subscription;
+  private realtimeCleanup?: () => void;
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   ngOnInit() {
     this.load();
@@ -60,10 +65,14 @@ export class IncidentsComponent implements OnInit, OnDestroy {
         ),
       )
       .subscribe(() => this.load(1));
+    this.realtimeCleanup = this.realtime.on('incident.deleted', () => {
+      this.load(this.result()?.pagination.page ?? 1);
+    });
   }
 
   ngOnDestroy() {
     this.filterSubscription?.unsubscribe();
+    this.realtimeCleanup?.();
   }
 
   load(page = 1) {

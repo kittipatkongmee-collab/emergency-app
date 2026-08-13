@@ -116,6 +116,49 @@
         ]
       }
     },
+    "/api/v1/auth/line": {
+      "post": {
+        "operationId": "CitizenAuthController_line",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LineLoginDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Citizen Authentication"]
+      }
+    },
+    "/api/v1/realtime/token": {
+      "post": {
+        "operationId": "RealtimeController_token",
+        "summary": "Issue a Firebase Custom Token for the current API principal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Firebase Custom Token envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealtimeTokenEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Realtime"
+        ]
+      }
+    },
     "/api/v1/admin/auth/login": {
       "post": {
         "operationId": "AdminAuthController_login",
@@ -393,6 +436,37 @@
         "requestBody": {
           "required": true,
           "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "contentBase64": {
+                          "type": "string",
+                          "format": "byte"
+                        }
+                      },
+                      "required": [
+                        "fileName",
+                        "contentBase64"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "images"
+                ]
+              }
+            },
             "multipart/form-data": {
               "schema": {
                 "type": "object",
@@ -446,6 +520,16 @@
         ]
       }
     },
+    "/api/v1/admin/incidents/map-points": {
+      "get": {
+        "operationId": "AdminIncidentsController_mapPoints",
+        "description": "Returns map points for incidents that are not completed.",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "security": [{ "bearer": [] }],
+        "tags": ["Admin Incidents"]
+      }
+    },
     "/api/v1/admin/incidents/{id}": {
       "get": {
         "operationId": "AdminIncidentsController_detail",
@@ -462,6 +546,39 @@
         "responses": {
           "200": {
             "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Incidents"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminIncidentsController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Incident and related records deleted"
+          },
+          "403": {
+            "description": "Requires SUPER_ADMIN or SUPERVISOR"
+          },
+          "404": {
+            "description": "Incident not found"
           }
         },
         "security": [
@@ -672,6 +789,30 @@
         ]
       }
     },
+    "/api/v1/admin/staff-positions": {
+      "get": {
+        "operationId": "AdminOperationsController_staffPositions",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "security": [{ "bearer": [] }],
+        "tags": ["Admin Operations"]
+      },
+      "post": {
+        "operationId": "AdminOperationsController_createStaffPosition",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateStaffPositionDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "security": [{ "bearer": [] }],
+        "tags": ["Admin Operations"]
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "operationId": "AdminOperationsController_users",
@@ -780,6 +921,20 @@
         "tags": [
           "Admin Operations"
         ]
+      },
+      "delete": {
+        "operationId": "AdminOperationsController_deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "security": [{ "bearer": [] }],
+        "tags": ["Admin Operations"]
       }
     },
     "/api/v1/admin/users/{id}/status": {
@@ -1137,6 +1292,10 @@
         "type": "object",
         "properties": {}
       },
+      "LineLoginDto": {
+        "type": "object",
+        "properties": {}
+      },
       "RefreshDto": {
         "type": "object",
         "properties": {}
@@ -1151,13 +1310,31 @@
       },
       "CreateIncidentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "required": ["fileName", "contentBase64"],
+              "properties": {
+                "fileName": { "type": "string" },
+                "contentBase64": { "type": "string", "format": "byte" }
+              }
+            }
+          }
+        }
       },
       "NoteDto": {
         "type": "object",
         "properties": {}
       },
       "AdminUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateStaffPositionDto": {
         "type": "object",
         "properties": {}
       },
@@ -1176,6 +1353,25 @@
       "RegisterDeviceDto": {
         "type": "object",
         "properties": {}
+      },
+      "RealtimeTokenEnvelope": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "type": "object",
+            "required": ["customToken", "expiresIn"],
+            "properties": {
+              "customToken": { "type": "string" },
+              "expiresIn": { "type": "integer", "example": 3600 }
+            }
+          },
+          "meta": { "type": "object" }
+        }
       }
     }
   }

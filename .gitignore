@@ -2,6 +2,8 @@ node_modules/
 .angular/
 dist/
 coverage/
+artifacts/
+.directadmin-package/
 .env
 .env.*
 !.env.example
@@ -15,4 +17,5 @@ apps/mobile/ios/Flutter/Generated.xcconfig
 *.log
 .idea/
 .vscode/
+.fvm/
 .DS_Store

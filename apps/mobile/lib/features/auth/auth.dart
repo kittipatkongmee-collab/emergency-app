@@ -94,6 +94,7 @@ class AuthController extends StateNotifier<AsyncValue<bool>> {
       }
     }
     await storage.deleteAll();
+    await ref.read(firebaseRealtimeProvider).disconnect();
     if (Environment.lineLoginConfigured) {
       try {
         await LineSDK.instance.logout();

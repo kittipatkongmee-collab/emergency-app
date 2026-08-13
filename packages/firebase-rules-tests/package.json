@@ -1,0 +1,17 @@
+{
+  "name": "@police/firebase-rules-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pretest": "node sync-rules.mjs",
+    "test": "firebase emulators:exec --only database --project police-incident-test --config firebase.json \"node --test database.rules.test.mjs\""
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.17.1"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.12.0"
+  }
+}

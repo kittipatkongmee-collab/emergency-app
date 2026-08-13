@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
@@ -35,7 +35,7 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly saving = signal(false);
-  readonly confirmation = signal<'accept' | 'complete' | null>(null);
+  readonly confirmation = signal<'accept' | 'complete' | 'delete' | null>(null);
   readonly imagePreview = signal<ImagePreview | null>(null);
   readonly id = this.route.snapshot.paramMap.get('id')!;
   private cleanup?: () => void;
@@ -58,11 +58,16 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
     );
   }
 
+  get canDelete(): boolean {
+    return ['SUPER_ADMIN', 'SUPERVISOR'].includes(this.auth.user()?.role ?? '');
+  }
+
   constructor(
     private readonly api: ApiService,
     private readonly sanitizer: DomSanitizer,
     private readonly realtime: RealtimeService,
     private readonly auth: AuthService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit() {
@@ -149,7 +154,7 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
     );
   }
 
-  openConfirmation(action: 'accept' | 'complete') {
+  openConfirmation(action: 'accept' | 'complete' | 'delete') {
     if (this.saving()) return;
     this.confirmation.set(action);
   }
@@ -162,6 +167,21 @@ export class IncidentDetailComponent implements OnInit, OnDestroy {
     const action = this.confirmation();
     if (!action || this.saving()) return;
     this.saving.set(true);
+    if (action === 'delete') {
+      this.api
+        .delete<{ deleted: boolean; id: string; caseCode: string }>(
+          `admin/incidents/${this.id}`,
+        )
+        .pipe(finalize(() => this.saving.set(false)))
+        .subscribe({
+          next: () => void this.router.navigateByUrl('/incidents'),
+          error: () => {
+            this.confirmation.set(null);
+            this.error.set('ไม่สามารถลบรายการแจ้งเหตุได้ กรุณาลองใหม่อีกครั้ง');
+          },
+        });
+      return;
+    }
     this.api
       .patch<Incident>(`admin/incidents/${this.id}/${action}`, {})
       .pipe(finalize(() => this.saving.set(false)))

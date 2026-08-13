@@ -1,12 +1,13 @@
 # ระบบแจ้งเหตุและติดตามสถานะเหตุฉุกเฉิน
 
-Monorepo สำหรับแอปประชาชน (Flutter), เว็บเจ้าหน้าที่ (Angular), API (NestJS), Prisma และ MySQL 8 รองรับ RBAC, การอัปโหลดรูป, audit log, notification และ Socket.IO
+Monorepo สำหรับแอปประชาชน (Flutter), เว็บเจ้าหน้าที่ (Angular) และ PHP API ที่ใช้ FastRoute, PDO และ MariaDB 10.6 โดยเก็บ NestJS API ไว้คู่ขนานสำหรับตรวจสอบความเท่าเทียมระหว่างการย้ายระบบ
 
 ## สิ่งที่ต้องติดตั้ง
 
 - Node.js 22 ขึ้นไป และ pnpm 11
+- Composer 2
 - Docker Desktop (Linux containers)
-- Flutter 3.41 ขึ้นไป และ Android Studio สำหรับรัน Android emulator
+- FVM 3.2 ขึ้นไป, Flutter 3.41.0 ที่ติดตั้งผ่าน FVM และ Android Studio สำหรับรัน Android emulator
 - PowerShell 7 แนะนำสำหรับ Windows
 
 ## ติดตั้งและสร้างฐานข้อมูลครั้งแรก
@@ -14,16 +15,15 @@ Monorepo สำหรับแอปประชาชน (Flutter), เว็�
 เปิด Docker Desktop และรอจนขึ้น `Engine running` จากนั้นเปิด PowerShell ที่โฟลเดอร์โปรเจกต์:
 
 ```powershell
+fvm install
 pnpm install
+composer install --working-dir=apps/api-php
 pnpm env:configure
-pnpm db:start
-pnpm db:migrate:deploy
-pnpm db:seed
 ```
 
 `pnpm env:configure` สร้างไฟล์ `.env` พร้อมรหัสแบบสุ่มสำหรับ development ห้าม commit ไฟล์นี้
 
-ฐานข้อมูล development ชื่อ `police_incident_system`, test ชื่อ `police_incident_test` และ shadow database ชื่อ `police_incident_shadow` ทุกฐานใช้ `utf8mb4`, `utf8mb4_unicode_ci` และ UTC
+เมื่อใช้ `pnpm start` ระบบจะสร้าง MariaDB และนำเข้าโครงสร้างฐานข้อมูลจาก `apps/api-php/database/schema.sql` ให้อัตโนมัติ
 
 ## เปิดระบบ
 
@@ -33,7 +33,7 @@ pnpm db:seed
 pnpm start
 ```
 
-คำสั่งนี้จะเปิด MySQL, API, เว็บหลังบ้านในเบราว์เซอร์ และแอป Android พร้อมกัน โดยเลือกอุปกรณ์ Android ที่เชื่อมต่ออยู่ หรือเปิด emulator ตัวแรกให้อัตโนมัติ กด `Ctrl+C` เพื่อปิดบริการทั้งหมด
+คำสั่งนี้จะ build และสร้าง PHP API container ใหม่ เปิด MariaDB, เว็บหลังบ้านในเบราว์เซอร์ และแอป Android พร้อมกัน โดยเลือกอุปกรณ์ Android ที่เชื่อมต่ออยู่ หรือเปิด emulator ตัวแรกให้อัตโนมัติ กด `Ctrl+C` เพื่อปิดเว็บและแอป
 
 หากต้องการระบุอุปกรณ์เอง ให้ตั้งค่า `MOBILE_DEVICE_ID` หรือระบุ emulator ด้วย `ANDROID_EMULATOR_ID` ก่อนรันคำสั่ง เช่น:
 
@@ -45,21 +45,21 @@ pnpm start
 หากต้องการเปิดแยกแต่ละส่วน ให้ใช้ PowerShell คนละหน้าต่าง:
 
 ```powershell
-pnpm db:start
-pnpm dev:api
+pnpm php:compose:up
 pnpm dev:web
+$env:MOBILE_API_PORT='8085'
 pnpm mobile:run:android
 ```
 
-- API: `http://localhost:3000/api/v1`
-- Swagger: `http://localhost:3000/docs`
+- PHP API: `http://localhost:8085/api/v1`
+- PHP API readiness: `http://localhost:8085/api/v1/ready`
 - Angular: `http://localhost:4200`
-- Prisma Studio: รัน `pnpm db:studio` แล้วเปิด `http://localhost:5555`
 - Flutter Android ใช้ `adb reverse` เพื่อเข้าถึง API ผ่าน `127.0.0.1` และใช้ `10.0.2.2` เป็น fallback สำหรับ emulator
 
 คำสั่งลัด:
 
-- `pnpm start` หรือ `pnpm start:all` เปิด MySQL, API, Angular และ Flutter Android พร้อมกัน
+- `pnpm start` หรือ `pnpm start:all` เปิด MariaDB, PHP API, Angular และ Flutter Android พร้อมกัน
+- `pnpm start:nest` เปิดระบบ NestJS เดิมสำหรับตรวจสอบ parity
 - `pnpm start:services` เปิด MySQL, API และ Angular
 - `pnpm start:backend` เปิด MySQL และ API
 - `pnpm start:web` เปิด Angular
@@ -117,7 +117,7 @@ pnpm mobile:test
 - Facebook: `FACEBOOK_LOGIN_ENABLED`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`
 - LINE Login: `LINE_LOGIN_ENABLED`, `LINE_CHANNEL_ID`, `LINE_EMAIL_SCOPE_ENABLED`
 - Firebase: `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY`
-- Flutter: `APP_ENV`, `API_BASE_URL`, `SOCKET_URL`, `MAPS_ENABLED`, `FCM_ENABLED`, `DEV_AUTH_BYPASS`
+- Flutter: `APP_ENV`, `API_BASE_URL`, `MAP_TILE_URL`, `FCM_ENABLED`, `DEV_AUTH_BYPASS`
 
 Production ต้องปิด `DEV_AUTH_BYPASS`, ใช้ secret ใหม่, CORS แบบระบุโดเมน และใช้ durable storage
 
@@ -137,7 +137,7 @@ Production ต้องปิด `DEV_AUTH_BYPASS`, ใช้ secret ใหม�
 - Port 3306 ถูกใช้: ตรวจ `Get-NetTCPConnection -LocalPort 3306` และหยุด MySQL ตัวอื่น หรือเปลี่ยน `DATABASE_PORT` พร้อม URL ใน `.env`
 - `pnpm` ไม่พบ: รัน `corepack enable` แล้ว `corepack prepare pnpm@11.9.0 --activate`
 - PowerShell บล็อก script: รัน `Set-ExecutionPolicy -Scope Process Bypass`
-- Android ไม่พบ: เปิด emulator ใน Android Studio แล้วตรวจ `flutter devices`
+- Android ไม่พบ: เปิด emulator ใน Android Studio แล้วตรวจ `fvm flutter devices`
 - Android เข้า localhost ไม่ได้: ใช้ `http://10.0.2.2:3000`
 - Prisma authentication failed: ตรวจให้รหัสใน `.env` ตรงกับ volume ปัจจุบัน หากเป็น development ที่ลบได้ให้ใช้ `pnpm db:reset`
 

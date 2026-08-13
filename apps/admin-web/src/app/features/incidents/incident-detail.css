@@ -324,12 +324,6 @@ aside {
   margin: 5px 0;
   font-size: 0.88rem;
 }
-.alert {
-  padding: 12px;
-  border-radius: 10px;
-  color: #87000f;
-  background: #fdebed;
-}
 @media (max-width: 950px) {
   .detail-grid {
     grid-template-columns: 1fr;

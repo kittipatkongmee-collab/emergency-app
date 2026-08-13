@@ -1,16 +1,55 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:permission_handler/permission_handler.dart' as permissions;
-import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../core/app_core.dart';
+import '../../core/phone_dialer.dart';
+import 'incident_image_normalizer.dart';
+
+const _mapUserAgentPackageName = 'th.go.police.tpad.police_incident_mobile';
+
+TileLayer _openStreetMapTileLayer() => TileLayer(
+  urlTemplate: Environment.mapTileUrl,
+  userAgentPackageName: _mapUserAgentPackageName,
+);
+
+class _OpenStreetMapAttribution extends StatelessWidget {
+  const _OpenStreetMapAttribution();
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    left: false,
+    child: Align(
+      alignment: Alignment.bottomRight,
+      child: ColoredBox(
+        color: const Color(0xD9FFFFFF),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          child: Text(
+            '© OpenStreetMap contributors',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF2D3439),
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 String incidentTypeLabel(String type) => switch (type) {
   'AIRCRAFT_ACCIDENT' => 'อากาศยานประสบภัย',
@@ -525,9 +564,30 @@ class IncidentRepository {
     if (validationErrors.isNotEmpty) {
       throw ArgumentError(validationErrors.first);
     }
+    final images = List<XFile>.unmodifiable(d.images);
+    final encodedImages = <Map<String, String>>[];
+    for (final image in images) {
+      final bytes = await image.readAsBytes();
+      if (bytes.isEmpty || bytes.length > 10 * 1024 * 1024) {
+        throw ArgumentError('รูปภาพต้องมีขนาดไม่เกิน 10 MB');
+      }
+      final mediaType = incidentImageMediaType(image.name);
+      final supported =
+          mediaType != null &&
+          mediaType.type == 'image' &&
+          const {'jpeg', 'png', 'webp'}.contains(mediaType.subtype);
+      if (!supported) {
+        throw ArgumentError('รองรับเฉพาะรูปภาพ JPG, PNG และ WEBP');
+      }
+      encodedImages.add({
+        'fileName': image.name,
+        'contentBase64': base64Encode(bytes),
+      });
+    }
+    final payload = d.toJson()..['images'] = encodedImages;
     final r = await api.dio.post(
       '/incidents',
-      data: d.toJson(),
+      data: payload,
       options: Options(
         headers: {
           'Idempotency-Key': 'mobile-${DateTime.now().microsecondsSinceEpoch}',
@@ -538,24 +598,14 @@ class IncidentRepository {
       (r.data as Map)['data'] as Map<String, dynamic>,
       api.mediaUrl,
     );
-    if (d.images.isNotEmpty) {
-      final form = FormData();
-      for (final image in d.images) {
-        final contentType = incidentImageMediaType(image.name);
-        form.files.add(
-          MapEntry(
-            'files',
-            await MultipartFile.fromFile(
-              image.path,
-              filename: image.name,
-              contentType: contentType,
-            ),
-          ),
-        );
-      }
-      await api.dio.post('/incidents/${item.id}/images', data: form);
+    if (item.images.length != images.length) {
+      throw DioException(
+        requestOptions: r.requestOptions,
+        response: r,
+        error: 'เซิร์ฟเวอร์บันทึกรูปภาพไม่ครบ กรุณาลองส่งข้อมูลอีกครั้ง',
+      );
     }
-    return detail(item.id);
+    return item;
   }
 }
 
@@ -625,6 +675,11 @@ class ReportDraft {
 
   List<String> validate() {
     final errors = <String>[];
+    if (images.isEmpty) {
+      errors.add('กรุณาแนบรูปภาพอย่างน้อย 1 รูป');
+    } else if (images.length > 5) {
+      errors.add('แนบรูปภาพได้ไม่เกิน 5 รูป');
+    }
     if (reporterName.trim().length < 2) {
       errors.add('กรุณาระบุชื่อผู้แจ้ง');
     }
@@ -688,18 +743,34 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     final selected = <XFile>[];
     if (source == ImageSource.gallery) {
       selected.addAll(
-        await picker.pickMultiImage(
-          imageQuality: 82,
-          limit: 5 - draft.images.length,
-        ),
+        await picker.pickMultiImage(limit: 5 - draft.images.length),
       );
     } else {
-      final image = await picker.pickImage(source: source, imageQuality: 82);
+      final image = await picker.pickImage(source: source);
       if (image != null) selected.add(image);
     }
     final valid = <XFile>[];
-    for (final image in selected) {
-      if (await image.length() <= 10 * 1024 * 1024) valid.add(image);
+    try {
+      for (final image in selected) {
+        final normalized = await normalizeIncidentImage(image);
+        if (await normalized.length() <= 10 * 1024 * 1024) {
+          valid.add(normalized);
+        }
+      }
+    } on FormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('รองรับเฉพาะรูปภาพ JPG, PNG และ WEBP')),
+      );
+      return;
+    } on FileSystemException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่สามารถเตรียมรูปภาพได้ กรุณาลองใหม่อีกครั้ง'),
+        ),
+      );
+      return;
     }
     ref
         .read(reportDraftProvider.notifier)
@@ -1158,10 +1229,8 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
   static const fallbackMapCenter = LatLng(13.7563, 100.5018);
 
   late LatLng selected;
-  GoogleMapController? mapController;
-  Offset simulatedMarkerFraction = const Offset(.5, .5);
+  final MapController mapController = MapController();
   bool locating = false;
-  bool resolvedDevicePosition = false;
 
   @override
   void initState() {
@@ -1184,12 +1253,8 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
       final nextPosition = LatLng(position.latitude, position.longitude);
       setState(() {
         selected = nextPosition;
-        simulatedMarkerFraction = const Offset(.5, .5);
-        resolvedDevicePosition = true;
       });
-      await mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(nextPosition, 16),
-      );
+      mapController.move(nextPosition, 16);
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1202,25 +1267,8 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
 
   @override
   void dispose() {
-    mapController?.dispose();
+    mapController.dispose();
     super.dispose();
-  }
-
-  void updateSimulatedLocation(Offset localPosition, Size mapSize) {
-    if (mapSize.width <= 0 || mapSize.height <= 0) return;
-    final nextFraction = Offset(
-      (localPosition.dx / mapSize.width).clamp(.08, .92).toDouble(),
-      (localPosition.dy / mapSize.height).clamp(.1, .9).toDouble(),
-    );
-    final latitudeDelta = (simulatedMarkerFraction.dy - nextFraction.dy) * .02;
-    final longitudeDelta = (nextFraction.dx - simulatedMarkerFraction.dx) * .02;
-    setState(() {
-      selected = LatLng(
-        (selected.latitude + latitudeDelta).clamp(-90, 90).toDouble(),
-        (selected.longitude + longitudeDelta).clamp(-180, 180).toDouble(),
-      );
-      simulatedMarkerFraction = nextFraction;
-    });
   }
 
   void confirm() {
@@ -1253,112 +1301,47 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: Environment.mapsEnabled
-                      ? GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: selected,
-                            zoom: 15,
+                  child: FlutterMap(
+                    key: const Key('openstreetmap-location-picker'),
+                    mapController: mapController,
+                    options: MapOptions(
+                      initialCenter: selected,
+                      initialZoom: 15,
+                      minZoom: 3,
+                      maxZoom: 19,
+                      onTap: (_, point) {
+                        setState(() => selected = point);
+                        mapController.move(point, mapController.camera.zoom);
+                      },
+                      onPositionChanged: (camera, hasGesture) {
+                        if (!hasGesture || camera.center == selected) return;
+                        setState(() => selected = camera.center);
+                      },
+                    ),
+                    children: [
+                      _openStreetMapTileLayer(),
+                      const _OpenStreetMapAttribution(),
+                    ],
+                  ),
+                ),
+                const Center(
+                  child: IgnorePointer(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 52),
+                      child: Icon(
+                        Icons.location_pin,
+                        color: AppTheme.primary,
+                        size: 72,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x66000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
                           ),
-                          onMapCreated: (controller) {
-                            mapController = controller;
-                            if (resolvedDevicePosition) {
-                              controller.moveCamera(
-                                CameraUpdate.newLatLngZoom(selected, 16),
-                              );
-                            }
-                          },
-                          markers: {
-                            Marker(
-                              markerId: const MarkerId('incident'),
-                              position: selected,
-                              draggable: true,
-                              onDragEnd: (v) => setState(() => selected = v),
-                            ),
-                          },
-                          onTap: (v) => setState(() => selected = v),
-                          myLocationButtonEnabled: false,
-                        )
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            final mapSize = constraints.biggest;
-                            final markerPosition = Offset(
-                              simulatedMarkerFraction.dx * mapSize.width,
-                              simulatedMarkerFraction.dy * mapSize.height,
-                            );
-                            return GestureDetector(
-                              key: const Key('interactive-simulated-map'),
-                              behavior: HitTestBehavior.opaque,
-                              onTapDown: (details) => updateSimulatedLocation(
-                                details.localPosition,
-                                mapSize,
-                              ),
-                              onPanStart: (details) => updateSimulatedLocation(
-                                details.localPosition,
-                                mapSize,
-                              ),
-                              onPanUpdate: (details) => updateSimulatedLocation(
-                                details.localPosition,
-                                mapSize,
-                              ),
-                              child: ColoredBox(
-                                color: const Color(0xFFF0F3F5),
-                                child: Stack(
-                                  children: [
-                                    CustomPaint(
-                                      size: Size.infinite,
-                                      painter: _MapGridPainter(),
-                                    ),
-                                    Positioned(
-                                      left: markerPosition.dx - 38,
-                                      top: markerPosition.dy - 70,
-                                      child: const IgnorePointer(
-                                        child: Icon(
-                                          Icons.location_pin,
-                                          color: AppTheme.primary,
-                                          size: 76,
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: 12,
-                                      top: 12,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(
-                                            alpha: .9,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 6,
-                                          ),
-                                          child: Text(
-                                            '${selected.latitude.toStringAsFixed(6)}, ${selected.longitude.toStringAsFixed(6)}',
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const Positioned(
-                                      right: 12,
-                                      bottom: 12,
-                                      child: Text(
-                                        'แตะหรือลากหมุดเพื่อเลือกตำแหน่ง',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: AppTheme.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 Positioned(
                   right: 18,
@@ -1414,7 +1397,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'แตะแผนที่หรือลากหมุดเพื่อเลือกตำแหน่งเหตุการณ์',
+                    'แตะแผนที่หรือลากแผนที่ใต้หมุดเพื่อเลือกตำแหน่งเหตุการณ์',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -1455,30 +1438,6 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
       ),
     ),
   );
-}
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas c, Size s) {
-    final p = Paint()
-      ..color = const Color(0xFFCBD5DC)
-      ..strokeWidth = 2;
-    for (double x = 0; x < s.width; x += 65)
-      c.drawLine(Offset(x, 0), Offset(x, s.height), p);
-    for (double y = 0; y < s.height; y += 65)
-      c.drawLine(Offset(0, y), Offset(s.width, y), p);
-    final river = Paint()
-      ..color = const Color(0xFFB8DFF3)
-      ..strokeWidth = 20;
-    c.drawLine(
-      Offset(0, s.height * .7),
-      Offset(s.width, s.height * .25),
-      river,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 class ReviewScreen extends ConsumerStatefulWidget {
@@ -1725,13 +1684,15 @@ class TrackingScreen extends ConsumerStatefulWidget {
   ConsumerState<TrackingScreen> createState() => _TrackingScreenState();
 }
 
-class _TrackingScreenState extends ConsumerState<TrackingScreen> {
+class _TrackingScreenState extends ConsumerState<TrackingScreen>
+    with WidgetsBindingObserver {
   Incident? incident;
   String? error;
-  io.Socket? socket;
+  StreamSubscription<RealtimeEvent>? realtimeSubscription;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     load();
     connect();
   }
@@ -1748,28 +1709,39 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Future<void> connect() async {
-    final token = await ref
-        .read(secureStorageProvider)
-        .read(key: 'accessToken');
-    socket = io.io(
-      Environment.socketUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket'])
-          .setAuth({'token': token})
-          .disableAutoConnect()
-          .build(),
-    );
-    socket!.on('incident.status.changed', (_) => load());
-    socket!.on('notification.created', (_) {
-      ref.invalidate(notificationsProvider);
-      ref.invalidate(unreadCountProvider);
+    final realtime = ref.read(firebaseRealtimeProvider);
+    realtimeSubscription ??= realtime.events.listen((event) {
+      if (event.type == 'incident.status.changed' ||
+          event.type == 'incident.deleted' ||
+          event.type == 'realtime.resync') {
+        load();
+      }
+      if (event.type == 'notification.created' ||
+          event.type == 'notification.deleted' ||
+          event.type == 'realtime.resync') {
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(unreadCountProvider);
+      }
     });
-    socket!.connect();
+    try {
+      await realtime.connect();
+    } catch (_) {
+      // The API remains authoritative when realtime is temporarily unavailable.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      load();
+      connect();
+    }
   }
 
   @override
   void dispose() {
-    socket?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    realtimeSubscription?.cancel();
     super.dispose();
   }
 
@@ -2001,13 +1973,7 @@ class _TrackingBody extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'พิกัด ${incident.latitude}, ${incident.longitude}',
-                    ),
-                  ),
-                ),
+                onPressed: () => showIncidentLocationMap(context, incident),
                 icon: const Icon(Icons.map_outlined),
                 label: const Text('ดูตำแหน่งบนแผนที่'),
               ),
@@ -2025,6 +1991,117 @@ class _TrackingBody extends StatelessWidget {
       ],
     );
   }
+}
+
+Future<void> showIncidentLocationMap(BuildContext context, Incident incident) {
+  final latitude = double.tryParse(incident.latitude);
+  final longitude = double.tryParse(incident.longitude);
+  if (latitude == null || longitude == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ข้อมูลพิกัดของเหตุการณ์ไม่ถูกต้อง')),
+    );
+    return Future.value();
+  }
+  final point = LatLng(latitude, longitude);
+  if (!point.isValid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ข้อมูลพิกัดของเหตุการณ์อยู่นอกขอบเขต')),
+    );
+    return Future.value();
+  }
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.white,
+    builder: (sheetContext) => FractionallySizedBox(
+      heightFactor: .82,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 64,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  const SizedBox(width: 40),
+                  const Expanded(
+                    child: Text(
+                      'ตำแหน่งเหตุการณ์',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppTheme.primaryDark,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'ปิดแผนที่',
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: FlutterMap(
+              key: const Key('openstreetmap-incident-location'),
+              options: MapOptions(
+                initialCenter: point,
+                initialZoom: 16,
+                minZoom: 3,
+                maxZoom: 19,
+              ),
+              children: [
+                _openStreetMapTileLayer(),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: point,
+                      width: 72,
+                      height: 72,
+                      alignment: Alignment.topCenter,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: AppTheme.primary,
+                        size: 64,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x66000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const _OpenStreetMapAttribution(),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on_outlined, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${incident.address}\n${latitude.toStringAsFixed(7)}, ${longitude.toStringAsFixed(7)}',
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _TimelineItem extends StatelessWidget {
@@ -2106,10 +2183,26 @@ class _TimelineItem extends StatelessWidget {
   );
 }
 
-void launchPhone(BuildContext context, String phone) {
-  ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text('หมายเลขติดต่อ: $phone')));
+Future<void> launchPhone(
+  BuildContext context,
+  String phone, {
+  PhoneDialer dialer = const SystemPhoneDialer(),
+}) async {
+  final phoneUri = createPhoneUri(phone);
+  var opened = false;
+  if (phoneUri != null) {
+    try {
+      opened = await dialer.open(phoneUri);
+    } on Exception {
+      opened = false;
+    }
+  }
+
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ไม่สามารถเปิดแอปโทรศัพท์บนเครื่องนี้ได้')),
+    );
+  }
 }
 
 class AppNotification {

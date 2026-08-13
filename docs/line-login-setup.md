@@ -12,10 +12,15 @@
 6. เปิดสิทธิ์ `profile` และ `openid` สำหรับการเข้าสู่ระบบ
 7. หากต้องการอีเมล ให้ยื่นขอสิทธิ์อีเมลกับ LINE ก่อน แล้วจึงเปิด `LINE_EMAIL_SCOPE_ENABLED`
 
-หา SHA-1 ของ debug certificate บน Windows ได้ด้วยคำสั่ง:
+หา SHA-1 ของ debug certificate บน Windows ได้ด้วยคำสั่งด้านล่าง หาก `keytool` ไม่ได้อยู่ใน `PATH` ให้เรียกจาก Android Studio โดยตรง:
 
 ```powershell
-keytool -list -v -alias androiddebugkey -keystore "$env:USERPROFILE\.android\debug.keystore" -storepass android -keypass android
+& "$env:ProgramFiles\Android\Android Studio\jbr\bin\keytool.exe" `
+  -list -v `
+  -alias androiddebugkey `
+  -keystore "$env:USERPROFILE\.android\debug.keystore" `
+  -storepass android `
+  -keypass android
 ```
 
 เมื่อนำขึ้น Google Play ให้เพิ่ม SHA-1 จาก **Play Console > Setup > App signing** ด้วย
@@ -33,14 +38,13 @@ LINE_EMAIL_SCOPE_ENABLED=false
 
 `LINE_CHANNEL_ID` เป็นข้อมูลสาธารณะที่แอปจำเป็นต้องใช้ แต่ห้ามนำ Channel secret หรือข้อมูลลับอื่นใส่ใน Flutter หรือ commit ลง Git
 
-## 3. อัปเดตฐานข้อมูลและรัน
+## 3. Build PHP API และรันระบบ
 
 ```powershell
-pnpm db:migrate
 pnpm start
 ```
 
-คำสั่ง `pnpm start` เปิด MySQL, API, เว็บหลังบ้าน และแอป Android พร้อมส่งค่า LINE ที่จำเป็นจาก `.env` เข้า Flutter
+คำสั่ง `pnpm start` จะ build PHP API container ใหม่ เปิด MariaDB, เว็บหลังบ้าน และแอป Android พร้อมส่ง `LINE_LOGIN_ENABLED` และ `LINE_CHANNEL_ID` จาก `.env` เข้า Flutter และ PHP API โดยไม่ฝัง Channel ID ลงในซอร์สโค้ด
 
 ## 4. ตรวจสอบผล
 

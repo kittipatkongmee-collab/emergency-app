@@ -16,10 +16,22 @@
       <h1 class="page-title">รายละเอียดเหตุการณ์</h1>
       <p class="muted">รับแจ้งเมื่อ {{ i.reportedAt | thaiBuddhistDate: 'long' }}</p>
     </div>
-    <span class="status" [attr.data-status]="i.status">{{ statusLabel(i.status) }}</span>
+    <div class="incident-heading-actions">
+      @if (canDelete) {
+        <button
+          class="btn-outline delete-incident"
+          type="button"
+          [disabled]="saving()"
+          (click)="openConfirmation('delete')"
+        >
+          ลบรายการแจ้งเหตุ
+        </button>
+      }
+      <span class="status" [attr.data-status]="i.status">{{ statusLabel(i.status) }}</span>
+    </div>
   </section>
   @if (error()) {
-    <p class="alert">{{ error() }}</p>
+    <p class="incident-alert">{{ error() }}</p>
   }
   <div class="detail-grid">
     <div class="content">
@@ -141,15 +153,25 @@
         (click)="$event.stopPropagation()"
         (keydown.escape)="closeConfirmation()"
       >
-        <div class="confirm-icon">{{ action === 'accept' ? '!' : '✓' }}</div>
+        <div class="confirm-icon" [class.danger]="action === 'delete'">
+          {{ action === 'accept' ? '!' : action === 'delete' ? '×' : '✓' }}
+        </div>
         <h2 id="confirm-title">
-          {{ action === 'accept' ? 'ยืนยันรับแจ้งเหตุ' : 'ยืนยันภารกิจสำเร็จ' }}
+          {{
+            action === 'accept'
+              ? 'ยืนยันรับแจ้งเหตุ'
+              : action === 'delete'
+                ? 'ยืนยันการลบรายการแจ้งเหตุ'
+                : 'ยืนยันภารกิจสำเร็จ'
+          }}
         </h2>
         <p>
           {{
             action === 'accept'
               ? 'เมื่อยืนยัน สถานะจะเปลี่ยนเป็นกำลังดำเนินการ'
-              : 'เมื่อยืนยัน เปลี่ยนเป็นภารกิจสำเร็จและแจ้งผลไปยังผู้แจ้งเหตุ'
+              : action === 'delete'
+                ? 'รายการ ' + i.caseCode + ' รูปภาพ การแจ้งเตือน และข้อมูลที่เกี่ยวข้องจะถูกลบถาวรและไม่สามารถเรียกคืนได้'
+                : 'เมื่อยืนยัน เปลี่ยนเป็นภารกิจสำเร็จและแจ้งผลไปยังผู้แจ้งเหตุ'
           }}
         </p>
         <div class="modal-actions">
@@ -163,6 +185,7 @@
           </button>
           <button
             class="btn-primary"
+            [class.danger-button]="action === 'delete'"
             type="button"
             [disabled]="saving()"
             (click)="confirmWorkflowAction()"
@@ -170,10 +193,14 @@
           >
             {{
               saving()
-                ? 'กำลังบันทึก…'
+                ? action === 'delete'
+                  ? 'กำลังลบ…'
+                  : 'กำลังบันทึก…'
                 : action === 'accept'
                   ? 'ยืนยันรับแจ้งเหตุ'
-                  : 'ยืนยันภารกิจสำเร็จ'
+                  : action === 'delete'
+                    ? 'ยืนยันการลบ'
+                    : 'ยืนยันภารกิจสำเร็จ'
             }}
           </button>
         </div>

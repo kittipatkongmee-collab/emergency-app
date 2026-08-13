@@ -1,11 +1,10 @@
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
-
-val googleMapsApiKey = System.getenv("GOOGLE_MAPS_API_KEY").orEmpty()
 
 android {
     namespace = "th.go.police.tpad.police_incident_mobile"
@@ -30,7 +29,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
     androidResources {

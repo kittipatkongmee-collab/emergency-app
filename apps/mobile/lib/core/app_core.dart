@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'api_gateway_cookie_interceptor.dart';
 
 class AppCopy {
   static const unitName =
@@ -20,13 +24,13 @@ class Environment {
     'API_BASE_URL',
     defaultValue: 'http://10.0.2.2:3000/api/v1',
   );
-  static const socketUrl = String.fromEnvironment(
-    'SOCKET_URL',
-    defaultValue: 'http://10.0.2.2:3000',
-  );
-  static const mapsEnabled = bool.fromEnvironment(
-    'MAPS_ENABLED',
+  static const firebaseRealtimeEnabled = bool.fromEnvironment(
+    'FIREBASE_REALTIME_ENABLED',
     defaultValue: false,
+  );
+  static const mapTileUrl = String.fromEnvironment(
+    'MAP_TILE_URL',
+    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   );
   static const fcmEnabled = bool.fromEnvironment(
     'FCM_ENABLED',
@@ -129,8 +133,10 @@ class ApiClient {
           baseUrl: Environment.apiBaseUrl,
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 20),
+          followRedirects: false,
         ),
       ) {
+    dio.interceptors.add(ApiGatewayCookieInterceptor(dio));
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -149,6 +155,9 @@ class ApiClient {
                 final options = error.requestOptions;
                 options.extra['retriedAfterRefresh'] = true;
                 options.headers['Authorization'] = 'Bearer $token';
+                if (options.data case final FormData formData) {
+                  options.data = formData.clone();
+                }
                 return handler.resolve(await dio.fetch<dynamic>(options));
               } catch (_) {
                 await storage.deleteAll();
@@ -217,6 +226,7 @@ class ApiClient {
       'INCIDENT_ACCESS_DENIED': 'คุณไม่มีสิทธิ์เปิดเหตุการณ์นี้',
       'FILE_TOO_LARGE': 'รูปภาพมีขนาดใหญ่เกินกำหนด',
       'FILE_TYPE_NOT_ALLOWED': 'ชนิดรูปภาพไม่รองรับ',
+      'INVALID_UPLOAD': 'เซิร์ฟเวอร์ไม่ได้รับข้อมูลรูปภาพครบถ้วน',
       'FILE_LIMIT_EXCEEDED': 'จำนวนรูปภาพเกินกำหนด',
     };
     return messages[code] ?? fallback ?? 'ไม่สามารถดำเนินการได้';
@@ -240,6 +250,85 @@ class ApiClient {
 final secureStorageProvider = Provider((_) => const FlutterSecureStorage());
 final apiClientProvider = Provider(
   (ref) => ApiClient(ref.watch(secureStorageProvider)),
+);
+
+class RealtimeEvent {
+  const RealtimeEvent({required this.eventId, required this.type});
+
+  final String eventId;
+  final String type;
+}
+
+class FirebaseRealtimeService {
+  FirebaseRealtimeService(this.apiClient);
+
+  final ApiClient apiClient;
+  final _events = StreamController<RealtimeEvent>.broadcast();
+  final _seenEventIds = <String>{};
+  final _subscriptions = <StreamSubscription<DatabaseEvent>>[];
+  Future<void>? _connecting;
+
+  Stream<RealtimeEvent> get events => _events.stream;
+
+  Future<void> connect() {
+    if (!Environment.firebaseRealtimeEnabled) return Future<void>.value();
+    return _connecting ??= _connect().whenComplete(() => _connecting = null);
+  }
+
+  Future<void> _connect() async {
+    final response = await apiClient.dio.post<dynamic>('/realtime/token');
+    final data = apiClient.data<Map<String, dynamic>>(response);
+    final credential = await FirebaseAuth.instance.signInWithCustomToken(
+      data['customToken'] as String,
+    );
+    final user = credential.user;
+    if (user == null) throw StateError('Firebase authentication failed');
+
+    await _cancelSubscriptions();
+    _subscriptions.add(
+      FirebaseDatabase.instance.ref('.info/connected').onValue.listen((event) {
+        if (event.snapshot.value == true) {
+          _events.add(const RealtimeEvent(eventId: 'reconnect', type: 'realtime.resync'));
+        }
+      }),
+    );
+    _watch('channels/users/${user.uid}');
+  }
+
+  void _watch(String path) {
+    _subscriptions.add(
+      FirebaseDatabase.instance.ref(path).onValue.listen((event) {
+        final value = event.snapshot.value;
+        if (value is! Map) return;
+        final eventId = value['eventId'];
+        final type = value['type'];
+        if (eventId is! String || type is! String || _seenEventIds.contains(eventId)) return;
+        _seenEventIds.add(eventId);
+        if (_seenEventIds.length > 100) {
+          _seenEventIds
+            ..clear()
+            ..add(eventId);
+        }
+        _events.add(RealtimeEvent(eventId: eventId, type: type));
+      }),
+    );
+  }
+
+  Future<void> disconnect() async {
+    await _cancelSubscriptions();
+    _seenEventIds.clear();
+    if (Environment.firebaseRealtimeEnabled) await FirebaseAuth.instance.signOut();
+  }
+
+  Future<void> _cancelSubscriptions() async {
+    final pending = _subscriptions.map((subscription) => subscription.cancel()).toList();
+    _subscriptions.clear();
+    await Future.wait(pending);
+  }
+}
+
+final firebaseRealtimeProvider = Provider(
+  (ref) => FirebaseRealtimeService(ref.watch(apiClientProvider)),
 );
 
 class GradientButton extends StatelessWidget {

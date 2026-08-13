@@ -1,0 +1,5 @@
+/vendor/
+/.env
+/firebase-service-account*.json
+/.phpunit.result.cache
+/build/

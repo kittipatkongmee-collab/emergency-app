@@ -72,7 +72,11 @@ replacements.set(
 replacements.set('DEV_AUTH_BYPASS', 'true');
 replacements.set('FACEBOOK_LOGIN_ENABLED', 'false');
 replacements.set('FCM_ENABLED', 'false');
-replacements.set('MAP_PROVIDER', replacements.get('MAP_PROVIDER') || 'development');
+replacements.set(
+  'MAP_TILE_URL',
+  replacements.get('MAP_TILE_URL') ||
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+);
 
 for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
   const value = replacements.get(key) ?? '';

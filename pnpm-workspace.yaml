@@ -2,6 +2,8 @@ packages:
   - "apps/api"
   - "apps/admin-web"
   - "packages/*"
+overrides:
+  "js-yaml@>=5.0.0 <=5.2.1": "5.2.2"
 onlyBuiltDependencies:
   - "@parcel/watcher"
   - "@prisma/client"

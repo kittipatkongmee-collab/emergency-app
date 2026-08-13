@@ -4,7 +4,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const isWindows = process.platform === "win32";
-const flutterCommand = "flutter";
+const flutterCommand = "fvm";
+const withFlutter = (args) => ["flutter", ...args];
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const mobileDirectory = join(workspaceRoot, "apps", "mobile");
 
@@ -17,10 +18,10 @@ function runFlutter(args, options = {}) {
   return isWindows
     ? spawnSync(
         process.env.ComSpec ?? "cmd.exe",
-        ["/d", "/c", [flutterCommand, ...args].join(" ")],
+        ["/d", "/c", [flutterCommand, ...withFlutter(args)].join(" ")],
         spawnOptions,
       )
-    : spawnSync(flutterCommand, args, spawnOptions);
+    : spawnSync(flutterCommand, withFlutter(args), spawnOptions);
 }
 
 function spawnFlutter(args) {
@@ -28,10 +29,10 @@ function spawnFlutter(args) {
   return isWindows
     ? spawn(
         process.env.ComSpec ?? "cmd.exe",
-        ["/d", "/c", [flutterCommand, ...args].join(" ")],
+        ["/d", "/c", [flutterCommand, ...withFlutter(args)].join(" ")],
         spawnOptions,
       )
-    : spawn(flutterCommand, args, spawnOptions);
+    : spawn(flutterCommand, withFlutter(args), spawnOptions);
 }
 
 export function parseAndroidDevices(output) {
@@ -138,12 +139,24 @@ async function resolveAndroidDevice() {
   return waitForAndroidDevice();
 }
 
-function configureAdbReverse(deviceId) {
+export function resolveMobileApiPort(environment = process.env) {
+  const value = environment.MOBILE_API_PORT?.trim() || "3000";
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`พอร์ต API สำหรับแอปไม่ถูกต้อง: ${value}`);
+  }
+  const port = Number(value);
+  if (port < 1 || port > 65535) {
+    throw new Error(`พอร์ต API สำหรับแอปอยู่นอกช่วงที่รองรับ: ${value}`);
+  }
+  return port;
+}
+
+function configureAdbReverse(deviceId, apiPort) {
   const adbPath = findAdb();
   if (!adbPath) return false;
   const result = spawnSync(
     adbPath,
-    ["-s", deviceId, "reverse", "tcp:3000", "tcp:3000"],
+    ["-s", deviceId, "reverse", `tcp:${apiPort}`, `tcp:${apiPort}`],
     {
       stdio: "ignore",
     },
@@ -156,7 +169,8 @@ export async function main() {
   if (!/^[A-Za-z0-9_.:-]+$/.test(device.id)) {
     throw new Error("รหัสอุปกรณ์ Android มีรูปแบบที่ไม่รองรับ");
   }
-  const reversed = configureAdbReverse(device.id);
+  const apiPort = resolveMobileApiPort();
+  const reversed = configureAdbReverse(device.id, apiPort);
   const apiHost = reversed ? "127.0.0.1" : device.emulator ? "10.0.2.2" : null;
   if (!apiHost) {
     throw new Error(
@@ -168,16 +182,21 @@ export async function main() {
   const lineLoginEnabled = process.env.LINE_LOGIN_ENABLED === "true";
   const lineChannelId = process.env.LINE_CHANNEL_ID?.trim() ?? "";
   const lineEmailScopeEnabled = process.env.LINE_EMAIL_SCOPE_ENABLED === "true";
-  const mapsEnabled = Boolean(process.env.GOOGLE_MAPS_API_KEY?.trim());
+  const mapTileUrl =
+    process.env.MAP_TILE_URL?.trim() ||
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
   if (lineLoginEnabled && !/^\d+$/.test(lineChannelId)) {
     throw new Error(
       "เปิด LINE Login แล้ว แต่ LINE_CHANNEL_ID ไม่ถูกต้อง กรุณาตรวจไฟล์ .env",
     );
   }
-  if (!mapsEnabled) {
-    console.warn(
-      "[แอป Android] ยังไม่ได้กำหนด GOOGLE_MAPS_API_KEY จะแสดงแผนที่จำลองแทน Google Maps",
-    );
+  if (
+    !mapTileUrl.startsWith("https://") ||
+    !["{z}", "{x}", "{y}"].every((placeholder) =>
+      mapTileUrl.includes(placeholder),
+    )
+  ) {
+    throw new Error("MAP_TILE_URL ต้องเป็น HTTPS และมี {z}, {x}, {y}");
   }
   const child = spawnFlutter([
     "run",
@@ -188,9 +207,9 @@ export async function main() {
     `--dart-define=LINE_LOGIN_ENABLED=${lineLoginEnabled}`,
     `--dart-define=LINE_CHANNEL_ID=${lineChannelId}`,
     `--dart-define=LINE_EMAIL_SCOPE_ENABLED=${lineEmailScopeEnabled}`,
-    `--dart-define=MAPS_ENABLED=${mapsEnabled}`,
-    `--dart-define=API_BASE_URL=http://${apiHost}:3000/api/v1`,
-    `--dart-define=SOCKET_URL=http://${apiHost}:3000`,
+    `--dart-define=MAP_TILE_URL=${mapTileUrl}`,
+    `--dart-define=API_BASE_URL=http://${apiHost}:${apiPort}/api/v1`,
+    `--dart-define=SOCKET_URL=http://${apiHost}:${apiPort}`,
   ]);
   child.once("error", (error) => {
     console.error("[แอป Android] เปิด Flutter ไม่สำเร็จ:", error.message);
