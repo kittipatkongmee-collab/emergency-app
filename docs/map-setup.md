@@ -1,14 +1,20 @@
 # Map setup
 
-Flutter ใช้ `DeviceLocationAdapter` เพื่อแยกการอ่าน GPS ออกจาก UI และบันทึกพิกัดแบบ Decimal 7 ตำแหน่ง ผู้ใช้แก้ที่อยู่/จุดสังเกตได้เอง หากยังไม่ตั้ง key จะแสดง development map placeholder โดยไม่สร้างข้อมูลตำแหน่งปลอมใหม่
+Flutter ใช้ `flutter_map` แสดงแผนที่ OpenStreetMap และใช้
+`DeviceLocationAdapter` แยกการอ่าน GPS ออกจาก UI พิกัดถูกบันทึกเป็นทศนิยม
+7 ตำแหน่งโดยไม่ต้องใช้ Google Maps API key
 
-งานที่รอ credentials:
+ค่า tile server กำหนดได้ตอน build ผ่าน `MAP_TILE_URL` และมีค่าเริ่มต้นเป็น:
 
-1. สร้าง Google Maps keys แยก Android, iOS และ Web
-2. จำกัด key ด้วย package name/SHA, bundle ID และ allowed domains
-3. เปิดเฉพาะ Maps SDK และ Geocoding APIs ที่ใช้จริง
-4. ใส่ key ผ่าน platform build configuration ไม่ฝังใน Dart
-5. build Flutter ด้วย `--dart-define=MAPS_ENABLED=true`
-6. เพิ่ม reverse-geocoding adapter เมื่อเลือกผู้ให้บริการแล้ว; หาก provider ล้มเหลวต้องยังกรอกที่อยู่เองได้
+```text
+https://tile.openstreetmap.org/{z}/{x}/{y}.png
+```
 
-Angular ใช้ configurable OpenStreetMap embed URL ใน development การนำขึ้น production ต้องยืนยันผู้ให้บริการและเงื่อนไขใช้งานก่อน
+URL ต้องเป็น HTTPS และมี `{z}`, `{x}` และ `{y}` แอปส่ง package name เป็น
+User-Agent และแสดง attribution ของ OpenStreetMap บนแผนที่ ห้ามเพิ่มการดาวน์โหลด
+tile ล่วงหน้าหรือโหมด offline เมื่อใช้ tile server สาธารณะของ OpenStreetMap
+
+หากปริมาณการใช้งาน production เพิ่มขึ้น ให้เปลี่ยน `MAP_TILE_URL` ไปยังผู้ให้บริการ
+OSM tile ที่มี SLA หรือระบบที่หน่วยงานดูแลเอง โดยไม่ต้องแก้ source code
+
+ระบบยังไม่ทำ reverse geocoding ผู้ใช้จึงตรวจสอบและแก้ไขที่อยู่หรือจุดสังเกตเองก่อนส่งเหตุ

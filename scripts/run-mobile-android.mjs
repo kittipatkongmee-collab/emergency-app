@@ -182,16 +182,21 @@ export async function main() {
   const lineLoginEnabled = process.env.LINE_LOGIN_ENABLED === "true";
   const lineChannelId = process.env.LINE_CHANNEL_ID?.trim() ?? "";
   const lineEmailScopeEnabled = process.env.LINE_EMAIL_SCOPE_ENABLED === "true";
-  const mapsEnabled = Boolean(process.env.GOOGLE_MAPS_API_KEY?.trim());
+  const mapTileUrl =
+    process.env.MAP_TILE_URL?.trim() ||
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
   if (lineLoginEnabled && !/^\d+$/.test(lineChannelId)) {
     throw new Error(
       "เปิด LINE Login แล้ว แต่ LINE_CHANNEL_ID ไม่ถูกต้อง กรุณาตรวจไฟล์ .env",
     );
   }
-  if (!mapsEnabled) {
-    console.warn(
-      "[แอป Android] ยังไม่ได้กำหนด GOOGLE_MAPS_API_KEY จะแสดงแผนที่จำลองแทน Google Maps",
-    );
+  if (
+    !mapTileUrl.startsWith("https://") ||
+    !["{z}", "{x}", "{y}"].every((placeholder) =>
+      mapTileUrl.includes(placeholder),
+    )
+  ) {
+    throw new Error("MAP_TILE_URL ต้องเป็น HTTPS และมี {z}, {x}, {y}");
   }
   const child = spawnFlutter([
     "run",
@@ -202,7 +207,7 @@ export async function main() {
     `--dart-define=LINE_LOGIN_ENABLED=${lineLoginEnabled}`,
     `--dart-define=LINE_CHANNEL_ID=${lineChannelId}`,
     `--dart-define=LINE_EMAIL_SCOPE_ENABLED=${lineEmailScopeEnabled}`,
-    `--dart-define=MAPS_ENABLED=${mapsEnabled}`,
+    `--dart-define=MAP_TILE_URL=${mapTileUrl}`,
     `--dart-define=API_BASE_URL=http://${apiHost}:${apiPort}/api/v1`,
     `--dart-define=SOCKET_URL=http://${apiHost}:${apiPort}`,
   ]);

@@ -6,6 +6,7 @@ use Police\Api\ApiException;
 use Police\Api\AuthService;
 use Police\Api\Config;
 use Police\Api\JwtCodec;
+use Police\Api\ImageStorage;
 use Police\Api\Uuid;
 
 $passed = 0;
@@ -164,6 +165,25 @@ testCase('MariaDB schema contains required safety tables', function () {
     foreach (array('RealtimeOutbox', "ENUM('RTDB','FCM')", 'RateLimitBucket', 'CaseCounter', 'utf8mb4_unicode_ci', 'CHAR(36)') as $required) {
         assertTrue(strpos($schema, $required) !== false, 'Schema is missing ' . $required);
     }
+});
+
+testCase('Incident deletion route is restricted to management roles', function () {
+    $routes = file_get_contents(dirname(__DIR__) . '/src/App.php');
+    assertTrue(strpos($routes, "route('DELETE', '/admin/incidents/{id}', 'deleteIncident', false, array('admin'), \$manageAdmins)") !== false, 'Incident deletion route is missing or has unsafe roles');
+});
+
+testCase('Base64 image upload rejects malformed content', function () {
+    $reflection = new ReflectionClass(ImageStorage::class);
+    $storage = $reflection->newInstanceWithoutConstructor();
+    expectApiCode('INVALID_UPLOAD', function () use ($storage) {
+        $storage->saveEncoded('incident.jpg', 'not-valid-base64***');
+    });
+});
+
+testCase('Image deletion rejects unsafe storage keys', function () {
+    $reflection = new ReflectionClass(ImageStorage::class);
+    $storage = $reflection->newInstanceWithoutConstructor();
+    assertTrue($storage->remove('../../index.php') === false, 'Unsafe storage key was accepted');
 });
 
 fwrite(STDOUT, PHP_EOL . $passed . ' passed, ' . $failed . ' failed' . PHP_EOL);

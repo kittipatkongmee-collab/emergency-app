@@ -41,7 +41,9 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
   readonly mapLoading = signal(true);
   readonly mapError = signal('');
   readonly plottedIncidents = computed(() =>
-    this.mapIncidents().filter((incident) => this.hasValidCoordinates(incident)),
+    this.mapIncidents().filter(
+      (incident) => incident.status !== 'COMPLETED' && this.hasValidCoordinates(incident),
+    ),
   );
   readonly selectedIncident = computed(
     () => this.incidents().find((incident) => incident.id === this.selectedId()) ?? null,
@@ -69,6 +71,7 @@ export class IncidentMapComponent implements OnInit, OnDestroy {
     this.realtimeCleanups.push(
       this.realtime.on('incident.created', () => this.refresh()),
       this.realtime.on('incident.updated', () => this.refresh()),
+      this.realtime.on('incident.deleted', () => this.refresh()),
     );
   }
 

@@ -6,8 +6,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val googleMapsApiKey = System.getenv("GOOGLE_MAPS_API_KEY").orEmpty()
-
 android {
     namespace = "th.go.police.tpad.police_incident_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -31,7 +29,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
     androidResources {

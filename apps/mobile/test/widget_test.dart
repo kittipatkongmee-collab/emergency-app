@@ -1,14 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:police_incident_mobile/core/app_core.dart';
+import 'package:police_incident_mobile/core/phone_dialer.dart';
 import 'package:police_incident_mobile/features/auth/auth.dart';
 import 'package:police_incident_mobile/features/home/home.dart';
 import 'package:police_incident_mobile/features/home/operational_home.dart';
 import 'package:police_incident_mobile/features/information/information.dart';
 import 'package:police_incident_mobile/features/incidents/incidents.dart';
+
+class _FakePhoneDialer implements PhoneDialer {
+  _FakePhoneDialer({this.result = true});
+
+  final bool result;
+  Uri? openedUri;
+
+  @override
+  Future<bool> open(Uri phoneUri) async {
+    openedUri = phoneUri;
+    return result;
+  }
+}
 
 class _FakeNotificationDataSource implements NotificationDataSource {
   _FakeNotificationDataSource(this.pages);
@@ -38,9 +53,62 @@ void main() {
     expect(AppTheme.light.appBarTheme.titleTextStyle?.fontFamily, 'Sarabun');
   });
 
+  testWidgets('ปุ่มโทรเปิดหน้าโทรศัพท์พร้อมหมายเลขโดยไม่แสดง Snackbar', (
+    tester,
+  ) async {
+    final dialer = _FakePhoneDialer();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () =>
+                  launchPhone(context, '0 2509 1520', dialer: dialer),
+              child: const Text('โทร'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('โทร'));
+    await tester.pump();
+
+    expect(dialer.openedUri, Uri.parse('tel:025091520'));
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('แจ้งข้อผิดพลาดเมื่อเครื่องเปิดหน้าโทรศัพท์ไม่ได้', (
+    tester,
+  ) async {
+    final dialer = _FakePhoneDialer(result: false);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () =>
+                  launchPhone(context, '0 2509 1520', dialer: dialer),
+              child: const Text('โทร'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('โทร'));
+    await tester.pump();
+
+    expect(
+      find.text('ไม่สามารถเปิดแอปโทรศัพท์บนเครื่องนี้ได้'),
+      findsOneWidget,
+    );
+  });
+
   group('ข้อมูลการแจ้งเหตุ', () {
     test('แปลงพิกัดเป็นทศนิยม 7 ตำแหน่ง', () {
-      const draft = ReportDraft(
+      final draft = ReportDraft(
+        images: [XFile('assets/images/bell-429-global-ranger.jpg')],
         reporterName: 'สมชาย ใจดี',
         reporterPhone: '0812345678',
         description: 'พบต้นไม้ล้มขวางถนนและรถไม่สามารถผ่านได้',
@@ -210,7 +278,7 @@ void main() {
       expect(find.text('เลือกแล้ว'), findsOneWidget);
     });
 
-    testWidgets('แผนที่จำลองแตะหรือลากหมุดเพื่อเปลี่ยนพิกัดได้', (
+    testWidgets('หน้าเลือกตำแหน่งใช้ OpenStreetMap โดยไม่ต้องมี Google key', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(411, 923));
@@ -232,17 +300,18 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       const originalCoordinates =
           'ละติจูด 37.4219983    |    ลองจิจูด -122.0840000';
       expect(find.text(originalCoordinates), findsOneWidget);
-      await tester.drag(
-        find.byKey(const Key('interactive-simulated-map')),
-        const Offset(70, -50),
+      expect(
+        find.byKey(const Key('openstreetmap-location-picker')),
+        findsOneWidget,
       );
-      await tester.pump();
-      expect(find.text(originalCoordinates), findsNothing);
+      final tileLayer = tester.widget<TileLayer>(find.byType(TileLayer));
+      expect(tileLayer.urlTemplate, Environment.mapTileUrl);
+      expect(find.textContaining('OpenStreetMap contributors'), findsOneWidget);
 
       final confirmLabel = tester.widget<Text>(find.text('ยืนยันตำแหน่ง'));
       expect(confirmLabel.maxLines, 1);
@@ -314,7 +383,8 @@ void main() {
         description: 'สั้น',
         address: '',
       );
-      expect(draft.validate(), hasLength(4));
+      expect(draft.validate(), hasLength(5));
+      expect(draft.validate().first, contains('รูปภาพ'));
     });
 
     test('สร้าง incident และ timeline จาก API JSON ได้', () {

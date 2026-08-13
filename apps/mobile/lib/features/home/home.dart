@@ -262,12 +262,7 @@ class HomeTab extends ConsumerWidget {
                           ),
                         ),
                         FilledButton.tonalIcon(
-                          onPressed: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('โทร. 0 2509 1520'),
-                                ),
-                              ),
+                          onPressed: () => launchPhone(context, '0 2509 1520'),
                           icon: const Icon(Icons.phone),
                           label: const Text('โทรเลย'),
                         ),

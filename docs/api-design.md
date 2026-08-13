@@ -37,10 +37,11 @@ Access token แยก actor เป็น citizen/admin และ refresh token 
 ## Incidents
 
 - `type` รับเฉพาะ `AIRCRAFT_ACCIDENT` หรือ `DISASTER_RELIEF`
-- Citizen: `POST /incidents`, `GET /incidents/me`, `GET /incidents/me/:id`
+- Citizen: `POST /incidents` accepts inline JSON Base64 images and creates the incident plus `IncidentImage` rows in one transaction; `GET /incidents/me`, `GET /incidents/me/:id`
 - Citizen: `GET /incidents/code/:caseCode`, `GET /incidents/:id`
-- Citizen: `POST /incidents/:id/images`
+- Citizen: `POST /incidents/:id/images` accepts JSON Base64 (`images[].fileName`, `images[].contentBase64`) and legacy multipart uploads.
 - Admin: `GET /admin/incidents`, `GET /admin/incidents/:id`
+- ผู้ดูแลระดับ `SUPER_ADMIN` หรือ `SUPERVISOR`: `DELETE /admin/incidents/:id` ลบเหตุการณ์ รูปภาพ การแจ้งเตือน และข้อมูลลูกที่เกี่ยวข้อง โดยคง Audit Log ไว้
 - Admin: `PATCH /admin/incidents/:id/accept`
 - ผู้รับผิดชอบเหตุ: `PATCH /admin/incidents/:id/complete`
 - Admin: `POST /admin/incidents/:id/notes`

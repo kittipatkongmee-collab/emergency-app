@@ -1,11 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Incident, IncidentPage } from '../../core/models';
 import { RealtimeService } from '../../core/realtime.service';
-import { IncidentLocationMapComponent } from './incident-location-map';
 import { IncidentMapComponent } from './map';
 
 describe('IncidentMapComponent', () => {
@@ -71,8 +69,8 @@ describe('IncidentMapComponent', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(fixture.componentInstance.plottedIncidents().length).toBe(3);
-    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(3);
+    expect(fixture.componentInstance.plottedIncidents().length).toBe(2);
+    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(2);
     expect(element.querySelectorAll('app-incident-location-map').length).toBe(1);
     expect(element.querySelectorAll('.locations article').length).toBe(2);
     expect(element.querySelector('.locations article.completed')?.textContent).toContain('สำเร็จ');
@@ -93,18 +91,16 @@ describe('IncidentMapComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.selectedId()).toBe('incident-completed');
-    expect(
-      fixture.debugElement.query(By.directive(IncidentLocationMapComponent)).componentInstance
-        .incident.id,
-    ).toBe('incident-completed');
+    expect(element.querySelectorAll('app-incident-location-map').length).toBe(0);
+    expect(element.querySelector('.item-map-state')?.textContent).toContain('ไม่แสดงหมุดบนแผนที่');
 
     updatedListener?.();
     fixture.detectChanges();
     await Promise.resolve();
 
-    expect(fixture.componentInstance.plottedIncidents().length).toBe(3);
-    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(3);
-    expect(element.querySelectorAll('app-incident-location-map').length).toBe(1);
+    expect(fixture.componentInstance.plottedIncidents().length).toBe(2);
+    expect(element.querySelectorAll('.aggregate-map-canvas .incident-map-marker').length).toBe(2);
+    expect(element.querySelectorAll('app-incident-location-map').length).toBe(0);
     expect(element.querySelectorAll('.locations article').length).toBe(2);
   });
 
