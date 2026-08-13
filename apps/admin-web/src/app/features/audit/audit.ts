@@ -97,6 +97,7 @@ export class AuditComponent implements OnInit {
       ADMIN_PASSWORD_RESET: 'ตั้งรหัสผ่านใหม่ให้เจ้าหน้าที่',
       INCIDENT_ACCEPTED: 'รับแจ้งเหตุเพื่อดำเนินการ',
       INCIDENT_COMPLETED: 'ปิดงานเหตุการณ์',
+      INCIDENT_DELETED: 'ลบรายการแจ้งเหตุ',
       INCIDENT_NOTE_CREATED: 'เพิ่มบันทึกในเหตุการณ์',
       SETTINGS_UPDATED: 'ปรับปรุงการตั้งค่าระบบ',
     };
@@ -152,6 +153,12 @@ export class AuditComponent implements OnInit {
         return oldStatus && newStatus
           ? `${entityReference} · สถานะ ${oldStatus} → ${newStatus}`
           : entityReference;
+      case 'INCIDENT_DELETED': {
+        const caseCode = this.textValue(audit.oldValue, 'caseCode');
+        return [caseCode ? `เลขที่เหตุ ${caseCode}` : entityReference, oldStatus && `สถานะ ${oldStatus}`]
+          .filter(Boolean)
+          .join(' · ');
+      }
       case 'INCIDENT_NOTE_CREATED': {
         const visibleToCitizen = audit.newValue?.['isVisibleToCitizen'];
         if (typeof visibleToCitizen !== 'boolean') return entityReference;

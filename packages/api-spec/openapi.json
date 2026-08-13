@@ -436,6 +436,37 @@
         "requestBody": {
           "required": true,
           "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "contentBase64": {
+                          "type": "string",
+                          "format": "byte"
+                        }
+                      },
+                      "required": [
+                        "fileName",
+                        "contentBase64"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "images"
+                ]
+              }
+            },
             "multipart/form-data": {
               "schema": {
                 "type": "object",
@@ -492,6 +523,7 @@
     "/api/v1/admin/incidents/map-points": {
       "get": {
         "operationId": "AdminIncidentsController_mapPoints",
+        "description": "Returns map points for incidents that are not completed.",
         "parameters": [],
         "responses": { "200": { "description": "" } },
         "security": [{ "bearer": [] }],
@@ -514,6 +546,39 @@
         "responses": {
           "200": {
             "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Incidents"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminIncidentsController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Incident and related records deleted"
+          },
+          "403": {
+            "description": "Requires SUPER_ADMIN or SUPERVISOR"
+          },
+          "404": {
+            "description": "Incident not found"
           }
         },
         "security": [
@@ -1245,7 +1310,21 @@
       },
       "CreateIncidentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "required": ["fileName", "contentBase64"],
+              "properties": {
+                "fileName": { "type": "string" },
+                "contentBase64": { "type": "string", "format": "byte" }
+              }
+            }
+          }
+        }
       },
       "NoteDto": {
         "type": "object",

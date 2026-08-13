@@ -3,12 +3,19 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { IncidentPage } from '../../core/models';
+import { RealtimeService } from '../../core/realtime.service';
 import { IncidentsComponent } from './incidents';
 
 interface FlatpickrInput extends HTMLInputElement {
   _flatpickr?: {
     setDate(date: string, triggerChange: boolean, format: string): void;
   };
+}
+
+function createRealtimeStub() {
+  const realtime = jasmine.createSpyObj<RealtimeService>('RealtimeService', ['on']);
+  realtime.on.and.returnValue(() => undefined);
+  return realtime;
 }
 
 describe('IncidentsComponent', () => {
@@ -19,10 +26,14 @@ describe('IncidentsComponent', () => {
 
   it('แสดงตัวกรองตามลำดับ วันที่เริ่มต้น วันที่สิ้นสุด ค้นหา ปุ่มค้นหา ประเภท และสถานะ', async () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    const realtime = createRealtimeStub();
     api.get.and.returnValue(of(emptyPage));
     await TestBed.configureTestingModule({
       imports: [IncidentsComponent],
-      providers: [{ provide: ApiService, useValue: api }],
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: RealtimeService, useValue: realtime },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(IncidentsComponent);
@@ -58,10 +69,14 @@ describe('IncidentsComponent', () => {
 
   it('ส่งประเภทและสถานะที่เลือกไปกรองรายการแจ้งเหตุ', async () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    const realtime = createRealtimeStub();
     api.get.and.returnValue(of(emptyPage));
     await TestBed.configureTestingModule({
       imports: [IncidentsComponent],
-      providers: [{ provide: ApiService, useValue: api }],
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: RealtimeService, useValue: realtime },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(IncidentsComponent);
@@ -82,8 +97,9 @@ describe('IncidentsComponent', () => {
 
   it('โหลดหน้าแรกอัตโนมัติเมื่อเปลี่ยนตัวกรองหรือวันที่', fakeAsync(() => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    const realtime = createRealtimeStub();
     api.get.and.returnValue(of(emptyPage));
-    const component = new IncidentsComponent(api);
+    const component = new IncidentsComponent(api, realtime);
 
     component.ngOnInit();
     component.filters.patchValue({
@@ -104,10 +120,11 @@ describe('IncidentsComponent', () => {
 
   it('โหลดรายการแจ้งเหตุหน้าละ 10 รายการเมื่อเลือกหน้า', () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    const realtime = createRealtimeStub();
     api.get.and.returnValue(
       of({ items: [], pagination: { page: 2, limit: 10, total: 48, totalPages: 5 } }),
     );
-    const component = new IncidentsComponent(api);
+    const component = new IncidentsComponent(api, realtime);
     component.result.set({
       items: [],
       pagination: { page: 1, limit: 10, total: 48, totalPages: 5 },
@@ -121,10 +138,14 @@ describe('IncidentsComponent', () => {
 
   it('ใช้ Flatpickr โดยแสดงวัน เดือน ปี พ.ศ. แต่ส่งค่า API เป็นวันที่มาตรฐาน', async () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    const realtime = createRealtimeStub();
     api.get.and.returnValue(of(emptyPage));
     await TestBed.configureTestingModule({
       imports: [IncidentsComponent],
-      providers: [{ provide: ApiService, useValue: api }],
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: RealtimeService, useValue: realtime },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(IncidentsComponent);
@@ -168,10 +189,15 @@ describe('IncidentsComponent', () => {
       pagination: { page: 1, limit: 10, total: 3, totalPages: 1 },
     };
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['get']);
+    const realtime = createRealtimeStub();
     api.get.and.returnValue(of(page));
     await TestBed.configureTestingModule({
       imports: [IncidentsComponent],
-      providers: [{ provide: ApiService, useValue: api }, provideRouter([])],
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: RealtimeService, useValue: realtime },
+        provideRouter([]),
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(IncidentsComponent);

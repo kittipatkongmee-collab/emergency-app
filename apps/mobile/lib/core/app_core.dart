@@ -28,9 +28,9 @@ class Environment {
     'FIREBASE_REALTIME_ENABLED',
     defaultValue: false,
   );
-  static const mapsEnabled = bool.fromEnvironment(
-    'MAPS_ENABLED',
-    defaultValue: false,
+  static const mapTileUrl = String.fromEnvironment(
+    'MAP_TILE_URL',
+    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   );
   static const fcmEnabled = bool.fromEnvironment(
     'FCM_ENABLED',
@@ -155,6 +155,9 @@ class ApiClient {
                 final options = error.requestOptions;
                 options.extra['retriedAfterRefresh'] = true;
                 options.headers['Authorization'] = 'Bearer $token';
+                if (options.data case final FormData formData) {
+                  options.data = formData.clone();
+                }
                 return handler.resolve(await dio.fetch<dynamic>(options));
               } catch (_) {
                 await storage.deleteAll();
@@ -223,6 +226,7 @@ class ApiClient {
       'INCIDENT_ACCESS_DENIED': 'คุณไม่มีสิทธิ์เปิดเหตุการณ์นี้',
       'FILE_TOO_LARGE': 'รูปภาพมีขนาดใหญ่เกินกำหนด',
       'FILE_TYPE_NOT_ALLOWED': 'ชนิดรูปภาพไม่รองรับ',
+      'INVALID_UPLOAD': 'เซิร์ฟเวอร์ไม่ได้รับข้อมูลรูปภาพครบถ้วน',
       'FILE_LIMIT_EXCEEDED': 'จำนวนรูปภาพเกินกำหนด',
     };
     return messages[code] ?? fallback ?? 'ไม่สามารถดำเนินการได้';

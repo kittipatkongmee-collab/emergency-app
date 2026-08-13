@@ -48,7 +48,7 @@
 - [x] Incident/dashboard/notification realtime events
 - [x] FCM adapter และ device-token persistence
 - [ ] BLOCKED: Waiting for Firebase credentials and mobile config files
-- [ ] BLOCKED: Waiting for restricted Google Maps keys
+- [x] OpenStreetMap tile map สำหรับเลือกและแสดงพิกัดโดยไม่ใช้ API key
 - [ ] BLOCKED: Waiting for approved production logo asset
 
 ## Phase 7 — Tests, security, build, documentation

@@ -56,9 +56,13 @@
           </span>
         </div>
 
-        @if (hasValidCoordinates(selected)) {
+        @if (selected.status !== 'COMPLETED' && hasValidCoordinates(selected)) {
           <div class="card selected-map-card">
             <app-incident-location-map [incident]="selected" />
+          </div>
+        } @else if (selected.status === 'COMPLETED') {
+          <div class="card state item-map-state">
+            เหตุการณ์นี้ดำเนินการเสร็จสิ้นแล้ว จึงไม่แสดงหมุดบนแผนที่
           </div>
         } @else {
           <div class="card state item-map-state">รายการนี้ไม่มีพิกัดที่ใช้งานได้</div>

@@ -20,15 +20,44 @@ final class ImageStorage
         if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
             throw new ApiException(400, 'INVALID_UPLOAD', 'อัปโหลดรูปภาพไม่สำเร็จ');
         }
-        if ((int) $file['size'] <= 0 || (int) $file['size'] > 10 * 1024 * 1024) {
+        return $this->saveFromPath($file['tmp_name'], $file['name'], (int) $file['size']);
+    }
+
+    public function saveEncoded($fileName, $contentBase64)
+    {
+        if (!is_string($fileName) || $fileName === '' || strlen($fileName) > 255 || !is_string($contentBase64) || $contentBase64 === '' || strlen($contentBase64) > 14 * 1024 * 1024) {
+            throw new ApiException(400, 'INVALID_UPLOAD', 'ข้อมูลรูปภาพไม่ถูกต้อง');
+        }
+        $binary = base64_decode($contentBase64, true);
+        if ($binary === false) {
+            throw new ApiException(400, 'INVALID_UPLOAD', 'ข้อมูลรูปภาพไม่ถูกต้อง');
+        }
+        $temporary = tempnam(sys_get_temp_dir(), 'incident-image-');
+        if ($temporary === false || file_put_contents($temporary, $binary, LOCK_EX) !== strlen($binary)) {
+            if ($temporary !== false && is_file($temporary)) {
+                @unlink($temporary);
+            }
+            throw new ApiException(500, 'STORAGE_WRITE_FAILED', 'ไม่สามารถเตรียมรูปภาพเพื่อบันทึกได้');
+        }
+        unset($binary);
+        try {
+            return $this->saveFromPath($temporary, $fileName, filesize($temporary));
+        } finally {
+            @unlink($temporary);
+        }
+    }
+
+    private function saveFromPath($source, $originalName, $size)
+    {
+        if ((int) $size <= 0 || (int) $size > 10 * 1024 * 1024) {
             throw new ApiException(400, 'FILE_TOO_LARGE', 'รูปภาพต้องมีขนาดไม่เกิน 10 MB');
         }
-        $info = @getimagesize($file['tmp_name']);
+        $info = @getimagesize($source);
         $allowed = array(IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', self::IMAGE_TYPE_WEBP => 'webp');
         if (!$info || !isset($allowed[$info[2]])) {
             throw new ApiException(400, 'INVALID_FILE_TYPE', 'รองรับเฉพาะ JPG, PNG และ WEBP');
         }
-        $extension = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+        $extension = strtolower(pathinfo((string) $originalName, PATHINFO_EXTENSION));
         $validExtensions = $info[2] === IMAGETYPE_JPEG ? array('jpg', 'jpeg') : array($allowed[$info[2]]);
         if (!in_array($extension, $validExtensions, true)) {
             throw new ApiException(400, 'FILE_EXTENSION_MISMATCH', 'นามสกุลไฟล์ไม่ตรงกับข้อมูลรูปภาพ');
@@ -36,7 +65,7 @@ final class ImageStorage
         if (isset($info['mime']) && strpos($info['mime'], 'image/') !== 0) {
             throw new ApiException(400, 'INVALID_FILE_TYPE', 'ชนิดไฟล์รูปภาพไม่ถูกต้อง');
         }
-        $this->assertCapacity((int) $file['size']);
+        $this->assertCapacity((int) $size);
         $year = gmdate('Y');
         $month = gmdate('m');
         $relative = $year . '/' . $month;
@@ -49,14 +78,14 @@ final class ImageStorage
         $extension = $allowed[$info[2]];
         $name = $id . '.' . $extension;
         $target = $directory . DIRECTORY_SEPARATOR . $name;
-        if (!$this->normalize($file['tmp_name'], $target, $info[2], $info[0], $info[1])) {
+        if (!$this->normalize($source, $target, $info[2], $info[0], $info[1])) {
             throw new ApiException(500, 'STORAGE_WRITE_FAILED', 'ไม่สามารถบันทึกรูปภาพได้');
         }
         chmod($target, 0644);
         return array(
             'id' => $id,
             'fileName' => $name,
-            'originalName' => substr(basename((string) $file['name']), 0, 255),
+            'originalName' => substr(basename((string) $originalName), 0, 255),
             'mimeType' => $extension === 'jpg' ? 'image/jpeg' : 'image/' . $extension,
             'fileSize' => filesize($target),
             'storageDriver' => 'directadmin-public',
@@ -68,12 +97,13 @@ final class ImageStorage
     public function remove($storageKey)
     {
         if (!preg_match('#^\d{4}/\d{2}/[0-9a-f-]{36}\.(jpg|png|webp)$#', $storageKey)) {
-            return;
+            return false;
         }
         $path = rtrim($this->config->get('IMAGE_STORAGE_PATH'), '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storageKey);
-        if (is_file($path)) {
-            @unlink($path);
+        if (!is_file($path)) {
+            return true;
         }
+        return @unlink($path);
     }
 
     private function normalize($source, $target, $type, $width, $height)

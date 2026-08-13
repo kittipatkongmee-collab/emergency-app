@@ -106,6 +106,13 @@ final class ApiController
         $latitude = $this->coordinate($body, 'latitude', -90, 90);
         $longitude = $this->coordinate($body, 'longitude', -180, 180);
         $priority = isset($body['priority']) ? $this->enumValue($body, 'priority', array('LOW', 'NORMAL', 'HIGH', 'CRITICAL')) : 'NORMAL';
+        if (isset($body['images']) && !is_array($body['images'])) {
+            throw new ApiException(400, 'INVALID_UPLOAD', 'ข้อมูลรูปภาพไม่ถูกต้อง');
+        }
+        $encodedImages = isset($body['images']) ? $body['images'] : array();
+        if (count($encodedImages) > 5) {
+            throw new ApiException(400, 'FILE_LIMIT_EXCEEDED', 'แนบรูปภาพได้ไม่เกิน 5 รูปต่อเหตุการณ์');
+        }
         $idempotency = trim((string) $request->header('idempotency-key', ''));
         if ($idempotency !== '' && (strlen($idempotency) > 100 || !preg_match('/^[A-Za-z0-9_.-]+$/', $idempotency))) {
             throw new ApiException(400, 'VALIDATION_ERROR', 'Idempotency-Key ไม่ถูกต้อง');
@@ -117,27 +124,34 @@ final class ApiController
                 return $this->incidentDetail($existing['id'], 'citizen', $request->principal['sub']);
             }
         }
+        $stored = $this->storeEncodedImages($encodedImages);
         $self = $this;
-        $incidentId = $this->db->transaction(function (Database $db) use ($request, $reporterName, $phone, $type, $description, $latitude, $longitude, $address, $priority, $clientRequestId, $body, $self) {
-            $year = (int) gmdate('Y');
-            $db->execute('INSERT INTO CaseCounter (id, year, lastNumber, createdAt, updatedAt) VALUES (?, ?, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE year = VALUES(year)', array(Uuid::v4(), $year));
-            $counter = $db->fetchOne('SELECT lastNumber FROM CaseCounter WHERE year = ? FOR UPDATE', array($year));
-            $lastNumber = (int) $counter['lastNumber'] + 1;
-            $db->execute('UPDATE CaseCounter SET lastNumber = ?, updatedAt = UTC_TIMESTAMP() WHERE year = ?', array($lastNumber, $year));
-            $id = Uuid::v4();
-            $caseCode = 'CASE-' . $year . '-' . str_pad((string) $lastNumber, 5, '0', STR_PAD_LEFT);
-            $db->execute('INSERT INTO Incident (id, caseCode, clientRequestId, citizenUserId, reporterName, reporterPhone, type, description, latitude, longitude, address, subdistrict, district, province, postalCode, status, priority, reportedAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'RECEIVED\', ?, UTC_TIMESTAMP(), UTC_TIMESTAMP(), UTC_TIMESTAMP())', array($id, $caseCode, $clientRequestId, $request->principal['sub'], $reporterName, $phone, $type, $description, $latitude, $longitude, $address, $self->optionalString($body, 'subdistrict', 191), $self->optionalString($body, 'district', 191), $self->optionalString($body, 'province', 191), $self->optionalString($body, 'postalCode', 16), $priority));
-            $db->execute('INSERT INTO IncidentStatusHistory (id, incidentId, fromStatus, toStatus, note, changedAt) VALUES (?, ?, NULL, \'RECEIVED\', ?, UTC_TIMESTAMP())', array(Uuid::v4(), $id, 'ระบบได้รับรายการและรอดำเนินการ'));
-            $db->execute('INSERT INTO Notification (id, citizenUserId, incidentId, title, message, type, isRead, createdAt) VALUES (?, ?, ?, ?, ?, \'INCIDENT_CREATED\', 0, UTC_TIMESTAMP())', array(Uuid::v4(), $request->principal['sub'], $id, 'รอดำเนินการ', 'ระบบได้รับรายการเลขที่ ' . $caseCode . ' และกำลังรอเจ้าหน้าที่รับแจ้งเหตุ'));
-            $admins = $db->fetchAll("SELECT id FROM AdminUser WHERE status = 'ACTIVE' AND role IN ('SUPER_ADMIN', 'SUPERVISOR')");
-            foreach ($admins as $admin) {
-                $db->execute('INSERT INTO Notification (id, adminUserId, incidentId, title, message, type, isRead, createdAt) VALUES (?, ?, ?, ?, ?, \'INCIDENT_CREATED\', 0, UTC_TIMESTAMP())', array(Uuid::v4(), $admin['id'], $id, 'มีเหตุการณ์ใหม่', $caseCode . ': ' . $description));
-                $self->firebase->queue($db, 'channels/users/admin:' . $admin['id'], 'notification.created', $id);
-            }
-            $self->firebase->queue($db, 'channels/admin', 'incident.created', $id);
-            $self->firebase->queue($db, 'channels/users/citizen:' . $request->principal['sub'], 'notification.created', $id);
-            return $id;
-        });
+        try {
+            $incidentId = $this->db->transaction(function (Database $db) use ($request, $reporterName, $phone, $type, $description, $latitude, $longitude, $address, $priority, $clientRequestId, $body, $stored, $self) {
+                $year = (int) gmdate('Y');
+                $db->execute('INSERT INTO CaseCounter (id, year, lastNumber, createdAt, updatedAt) VALUES (?, ?, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE year = VALUES(year)', array(Uuid::v4(), $year));
+                $counter = $db->fetchOne('SELECT lastNumber FROM CaseCounter WHERE year = ? FOR UPDATE', array($year));
+                $lastNumber = (int) $counter['lastNumber'] + 1;
+                $db->execute('UPDATE CaseCounter SET lastNumber = ?, updatedAt = UTC_TIMESTAMP() WHERE year = ?', array($lastNumber, $year));
+                $id = Uuid::v4();
+                $caseCode = 'CASE-' . $year . '-' . str_pad((string) $lastNumber, 5, '0', STR_PAD_LEFT);
+                $db->execute('INSERT INTO Incident (id, caseCode, clientRequestId, citizenUserId, reporterName, reporterPhone, type, description, latitude, longitude, address, subdistrict, district, province, postalCode, status, priority, reportedAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'RECEIVED\', ?, UTC_TIMESTAMP(), UTC_TIMESTAMP(), UTC_TIMESTAMP())', array($id, $caseCode, $clientRequestId, $request->principal['sub'], $reporterName, $phone, $type, $description, $latitude, $longitude, $address, $self->optionalString($body, 'subdistrict', 191), $self->optionalString($body, 'district', 191), $self->optionalString($body, 'province', 191), $self->optionalString($body, 'postalCode', 16), $priority));
+                $self->insertIncidentImages($db, $id, $stored);
+                $db->execute('INSERT INTO IncidentStatusHistory (id, incidentId, fromStatus, toStatus, note, changedAt) VALUES (?, ?, NULL, \'RECEIVED\', ?, UTC_TIMESTAMP())', array(Uuid::v4(), $id, 'ระบบได้รับรายการและรอดำเนินการ'));
+                $db->execute('INSERT INTO Notification (id, citizenUserId, incidentId, title, message, type, isRead, createdAt) VALUES (?, ?, ?, ?, ?, \'INCIDENT_CREATED\', 0, UTC_TIMESTAMP())', array(Uuid::v4(), $request->principal['sub'], $id, 'รอดำเนินการ', 'ระบบได้รับรายการเลขที่ ' . $caseCode . ' และกำลังรอเจ้าหน้าที่รับแจ้งเหตุ'));
+                $admins = $db->fetchAll("SELECT id FROM AdminUser WHERE status = 'ACTIVE' AND role IN ('SUPER_ADMIN', 'SUPERVISOR')");
+                foreach ($admins as $admin) {
+                    $db->execute('INSERT INTO Notification (id, adminUserId, incidentId, title, message, type, isRead, createdAt) VALUES (?, ?, ?, ?, ?, \'INCIDENT_CREATED\', 0, UTC_TIMESTAMP())', array(Uuid::v4(), $admin['id'], $id, 'มีเหตุการณ์ใหม่', $caseCode . ': ' . $description));
+                    $self->firebase->queue($db, 'channels/users/admin:' . $admin['id'], 'notification.created', $id);
+                }
+                $self->firebase->queue($db, 'channels/admin', 'incident.created', $id);
+                $self->firebase->queue($db, 'channels/users/citizen:' . $request->principal['sub'], 'notification.created', $id);
+                return $id;
+            });
+        } catch (\Exception $error) {
+            $this->removeStoredImages($stored);
+            throw $error;
+        }
         $this->publishBestEffort();
         return $this->incidentDetail($incidentId, 'citizen', $request->principal['sub']);
     }
@@ -169,9 +183,9 @@ final class ApiController
     private function mapPoints(Request $request)
     {
         $params = array();
-        $where = '';
+        $where = " WHERE status <> 'COMPLETED'";
         if ($request->principal['role'] === 'OFFICER') {
-            $where = ' WHERE assignedAdminUserId = ?';
+            $where .= ' AND assignedAdminUserId = ?';
             $params[] = $request->principal['sub'];
         }
         return $this->db->fetchAll('SELECT id, caseCode, latitude, longitude, address, status FROM Incident' . $where . ' ORDER BY reportedAt DESC', $params);
@@ -180,6 +194,57 @@ final class ApiController
     private function adminIncident(Request $request)
     {
         return $this->incidentDetail($request->params['id'], 'admin', null, $request->principal);
+    }
+
+    private function deleteIncident(Request $request)
+    {
+        $id = $request->params['id'];
+        $self = $this;
+        $deleted = $this->db->transaction(function (Database $db) use ($request, $id, $self) {
+            $incident = $db->fetchOne('SELECT * FROM Incident WHERE id = ? FOR UPDATE', array($id));
+            if (!$incident) {
+                throw new ApiException(404, 'INCIDENT_NOT_FOUND', 'ไม่พบข้อมูลเหตุการณ์');
+            }
+            $images = $db->fetchAll('SELECT storageKey FROM IncidentImage WHERE incidentId = ?', array($id));
+            $notifications = $db->fetchAll('SELECT citizenUserId, adminUserId FROM Notification WHERE incidentId = ?', array($id));
+            $adminRecipients = array();
+            $citizenRecipients = array($incident['citizenUserId'] => true);
+            foreach ($notifications as $notification) {
+                if ($notification['adminUserId']) {
+                    $adminRecipients[$notification['adminUserId']] = true;
+                }
+                if ($notification['citizenUserId']) {
+                    $citizenRecipients[$notification['citizenUserId']] = true;
+                }
+            }
+
+            $db->execute('DELETE FROM RealtimeOutbox WHERE entityId = ? AND publishedAt IS NULL', array($id));
+            $db->execute('DELETE FROM Notification WHERE incidentId = ?', array($id));
+            $db->execute('DELETE FROM Incident WHERE id = ?', array($id));
+            $self->audit($db, $request->principal['sub'], 'INCIDENT_DELETED', 'Incident', $id, array(
+                'caseCode' => $incident['caseCode'],
+                'type' => $incident['type'],
+                'status' => $incident['status'],
+                'imageCount' => count($images),
+            ), null);
+            $self->firebase->queue($db, 'channels/admin', 'incident.deleted', $id);
+            foreach (array_keys($adminRecipients) as $adminId) {
+                $self->firebase->queue($db, 'channels/users/admin:' . $adminId, 'notification.deleted', $id);
+            }
+            foreach (array_keys($citizenRecipients) as $citizenId) {
+                $self->firebase->queue($db, 'channels/users/citizen:' . $citizenId, 'incident.deleted', $id);
+                $self->firebase->queue($db, 'channels/users/citizen:' . $citizenId, 'notification.deleted', $id);
+            }
+            return array('caseCode' => $incident['caseCode'], 'images' => $images);
+        });
+
+        foreach ($deleted['images'] as $image) {
+            if (!$this->storage->remove($image['storageKey'])) {
+                error_log('Unable to remove incident image after deletion: ' . $image['storageKey']);
+            }
+        }
+        $this->publishBestEffort();
+        return array('deleted' => true, 'id' => $id, 'caseCode' => $deleted['caseCode']);
     }
 
     private function acceptIncident(Request $request)
@@ -271,8 +336,13 @@ final class ApiController
             throw new ApiException(404, 'INCIDENT_NOT_FOUND', 'ไม่พบข้อมูลเหตุการณ์');
         }
         $files = $this->normalizeFiles(isset($request->files['files']) ? $request->files['files'] : null);
+        $encodedImages = isset($request->body['images']) && is_array($request->body['images']) ? $request->body['images'] : array();
         $existing = $this->db->fetchOne('SELECT COUNT(*) AS total FROM IncidentImage WHERE incidentId = ?', array($incident['id']));
-        if (!$files || (int) $existing['total'] + count($files) > 5) {
+        $incomingCount = count($files) + count($encodedImages);
+        if ($incomingCount < 1) {
+            throw new ApiException(400, 'INVALID_UPLOAD', 'ไม่พบข้อมูลรูปภาพในคำขอ');
+        }
+        if ((int) $existing['total'] + $incomingCount > 5) {
             throw new ApiException(400, 'FILE_LIMIT_EXCEEDED', 'แนบรูปภาพได้ไม่เกิน 5 รูปต่อเหตุการณ์');
         }
         $stored = array();
@@ -280,24 +350,53 @@ final class ApiController
             foreach ($files as $file) {
                 $stored[] = $this->storage->save($file);
             }
+            $stored = array_merge($stored, $this->storeEncodedImages($encodedImages));
             $self = $this;
             $images = $this->db->transaction(function (Database $db) use ($stored, $incident, $self) {
-                $rows = array();
-                foreach ($stored as $item) {
-                    $id = Uuid::v4();
-                    $db->execute('INSERT INTO IncidentImage (id, incidentId, fileName, originalName, mimeType, fileSize, storageDriver, storageKey, imageUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())', array($id, $incident['id'], $item['fileName'], $item['originalName'], $item['mimeType'], $item['fileSize'], $item['storageDriver'], $item['storageKey'], $item['imageUrl']));
-                    $rows[] = $db->fetchOne('SELECT * FROM IncidentImage WHERE id = ?', array($id));
-                }
+                $rows = $self->insertIncidentImages($db, $incident['id'], $stored);
                 $self->firebase->queue($db, 'channels/admin', 'incident.updated', $incident['id']);
                 return $rows;
             });
             $this->publishBestEffort();
             return $images;
         } catch (\Exception $error) {
-            foreach ($stored as $item) {
-                $this->storage->remove($item['storageKey']);
-            }
+            $this->removeStoredImages($stored);
             throw $error;
+        }
+    }
+
+    private function storeEncodedImages(array $encodedImages)
+    {
+        $stored = array();
+        try {
+            foreach ($encodedImages as $image) {
+                if (!is_array($image) || !isset($image['fileName'], $image['contentBase64']) || !is_string($image['fileName']) || !is_string($image['contentBase64'])) {
+                    throw new ApiException(400, 'INVALID_UPLOAD', 'ข้อมูลรูปภาพไม่ถูกต้อง');
+                }
+                $stored[] = $this->storage->saveEncoded($image['fileName'], $image['contentBase64']);
+            }
+            return $stored;
+        } catch (\Exception $error) {
+            $this->removeStoredImages($stored);
+            throw $error;
+        }
+    }
+
+    private function insertIncidentImages(Database $db, $incidentId, array $stored)
+    {
+        $rows = array();
+        foreach ($stored as $item) {
+            $id = Uuid::v4();
+            $db->execute('INSERT INTO IncidentImage (id, incidentId, fileName, originalName, mimeType, fileSize, storageDriver, storageKey, imageUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())', array($id, $incidentId, $item['fileName'], $item['originalName'], $item['mimeType'], $item['fileSize'], $item['storageDriver'], $item['storageKey'], $item['imageUrl']));
+            $rows[] = $db->fetchOne('SELECT * FROM IncidentImage WHERE id = ?', array($id));
+        }
+        return $rows;
+    }
+
+    private function removeStoredImages(array $stored)
+    {
+        foreach ($stored as $item) {
+            $this->storage->remove($item['storageKey']);
         }
     }
 

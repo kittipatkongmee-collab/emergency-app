@@ -66,6 +66,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.cleanups = [
       () => filterSubscription.unsubscribe(),
       this.realtime.on('incident.created', () => this.load(false)),
+      this.realtime.on('incident.deleted', () => this.load(false)),
       this.realtime.on('dashboard.summary.changed', () => this.load(false)),
     ];
   }

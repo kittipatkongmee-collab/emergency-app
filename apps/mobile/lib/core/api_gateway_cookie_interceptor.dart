@@ -52,6 +52,9 @@ final class ApiGatewayCookieInterceptor extends Interceptor {
     _gatewayHost = options.uri.host;
     options.extra[_retryKey] = true;
     options.headers['Cookie'] = cookie;
+    if (options.data case final FormData formData) {
+      options.data = formData.clone();
+    }
 
     try {
       handler.resolve(await _dio.fetch<dynamic>(options));

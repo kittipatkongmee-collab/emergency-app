@@ -110,6 +110,7 @@ final class App
             $this->route('GET', '/admin/incidents', 'adminIncidents', false, array('admin'), $allAdmins),
             $this->route('GET', '/admin/incidents/map-points', 'mapPoints', false, array('admin'), $allAdmins),
             $this->route('GET', '/admin/incidents/{id}', 'adminIncident', false, array('admin'), $allAdmins),
+            $this->route('DELETE', '/admin/incidents/{id}', 'deleteIncident', false, array('admin'), $manageAdmins),
             $this->route('PATCH', '/admin/incidents/{id}/accept', 'acceptIncident', false, array('admin'), $operate),
             $this->route('PATCH', '/admin/incidents/{id}/complete', 'completeIncident', false, array('admin'), $operate),
             $this->route('POST', '/admin/incidents/{id}/notes', 'addIncidentNote', false, array('admin'), $operate, null, 201),

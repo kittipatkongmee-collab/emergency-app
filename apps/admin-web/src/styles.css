@@ -110,6 +110,30 @@ a {
   background: white;
   font-weight: 600;
 }
+.incident-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.delete-incident {
+  border-color: #b42332;
+  color: #9c1423;
+}
+.delete-incident:hover {
+  color: #fff;
+  background: #9c1423;
+}
+.confirm-modal .confirm-icon.danger,
+.danger-button {
+  background: #9c1423;
+}
+.incident-alert {
+  padding: 12px;
+  border-radius: 10px;
+  color: #87000f;
+  background: #fdebed;
+}
 .status {
   display: inline-flex;
   align-items: center;
@@ -408,6 +432,11 @@ body .status.status[data-status] {
 }
 
 @media (max-width: 600px) {
+  .incident-heading-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .page-title {
     font-size: clamp(1.28rem, 1.18rem + 2vw, 1.55rem);
   }
